@@ -6,6 +6,7 @@
   packages = [
     pkgs.python312
     pkgs.python312Packages.pip
+    pkgs.nodejs_latest
 
     pkgs.poppler_utils
     pkgs.ffmpeg
@@ -81,6 +82,9 @@
           which python3 || true
           pdftoppm -v || true
           ffmpeg -version || true
+        '';
+        install-node-packages = ''
+          npm install -g @google/gemini-cli
         '';
       };
     };
