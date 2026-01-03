@@ -1,4 +1,4 @@
-# AI-Handwriting-Grader
+# Gemini-Handwriting-Grader
 As an educator, grading tests and assignments is a challenging and time-consuming task. The process involves several steps, such as collecting all completed scripts, reviewing the standard answers and marking for each question, assigning marks, and repeating the process for each student. Once all questions have been marked, the total score for each student must be calculated and entered into a spreadsheet. Finally, the scored scripts are returned to the students.
 
 The current process is quite tedious and involves several unnecessary steps, such as flipping through papers, calculating total marks, and manually entering them into a spreadsheet. Reviewing standard answers and grading each question individually is also quite inefficient, as educators often have to repeat the process until they can memorize the marking scheme. Furthermore, this approach can sometimes result in unfair grading, as educators may not review all student answers for each question at the same time. To address this issue, some educators opt to score each question individually, but this requires flipping through the script multiple times, adding to the workload.
@@ -7,97 +7,129 @@ The process is not only physically exhausting but can also result in long-term b
 
 This version is not reliant on cloud services and can be utilized by all educators through the free GitHub CodeSpaces platform.
 
+## How it Works
 
-## Template File
-1. sample/VTC Test Name List.xlsx - example name list with ID/NAME/CLASS columns; copy and customize this file in `data/` to match your students.
-2. smtp-template.config - rename and populate this file with your SMTP server/credentials to enable the email step.
+This project automates the grading process using a series of Jupyter notebooks that leverage Google's Gemini AI. The workflow is as follows:
 
-## Required data files
-- `data/<prefix>.pdf` – the scanned exam or assignment PDF (prefix matches the exam name and drives all downstream file paths, e.g., `VTC Test.pdf`).
-- `data/<prefix> Name List.xlsx` – the roster used by `step1` (copy/paste from the sample and keep columns `ID`, `NAME`, `CLASS`).
-- `data/<prefix> Marking Scheme.docx` – the Word document containing the standard answers that `step2` ingests.
-- `data/<prefix> Answer Sheet.docx` – the template filled in by `step1` (generated automatically when you run the notebook).
+1.  **Generate Answer Sheets**: Creates personalized answer sheets for each student from a roster.
+2.  **Extract Marking Scheme**: Parses a `.docx` marking scheme into a structured Excel file using Gemini.
+3.  **Define Answer Regions**: Converts the scanned exam PDF into images and allows the user to define bounding boxes for each answer area.
+4.  **AI-Powered Scoring**: Performs OCR on the handwritten answers, grades them against the marking scheme using Gemini, and builds a web interface for review.
+5.  **Review and Finalize**: The educator reviews the AI-generated scores, makes adjustments in the web UI, and finalizes the marks.
+6.  **Package Results**: Generates comprehensive reports, creates individually scored PDF files for each student, and packages all outputs.
+7.  **Email Scores**: Sends personalized emails to each student with their score, a performance summary, and the annotated script attached.
 
-Make sure the prefix is consistent across all these filenames because every notebook calls `setup_paths(prefix, data_folder)` to resolve the inputs and the results will live in `marking_form/<prefix>/…`.
+## Setup and Input Files
 
-## High level steps
-1. Fork the repository and launch a GitHub CodeSpace (or local environment) so you can install the requirements and render the notebooks.
-2. Upload your scanned exam PDF plus a name list (e.g., copy and fill `sample/VTC Test Name List.xlsx`) and marking scheme Word file into the `data/` folder.
-3. Run `step1_generate_answer_sheet.ipynb` to merge the name list with the Word template, export per-student DOCX/PDF files, and compile a combined answer sheet ready for printing.
-4. Run `step2_generate_marking_scheme_excel.ipynb` to parse the Word marking scheme via Gemini and save a structured Excel workbook (Marking Scheme + Summary).
-5. Run `step3_question_annotations.ipynb` to convert the PDF into images, auto-detect bounding boxes, and adjust each answer region before saving `annotations.json` under `marking_form/`.
-6. Run `step4_scoring_preprocessing.ipynb` to load annotations, standard answers, and templates; OCR each cropped response with Gemini, grade answers with the scoring prompt, and build the per-question web review interface.
-7. Preview the generated scoring website locally, revisit any questions, and submit final marks back into the `mark.json` files exposed by the website.
-8. Run `step5_post_scoring_checks.ipynb` to confirm every question has a mark, verify IDs against the name list, and clean temporary version files.
-9. Run `step6_scoring_postprocessing.ipynb` to zip the website, calculate the final mark sheet, annotate PDF scripts, sample strong/weak work, and save `details_score_report.xlsx` plus supporting exports.
-10. Run `step7_email_score.ipynb` to load `details_score_report.xlsx`, attach each student’s scored PDF from `marking_form/<exam>/marked/pdfs/`, and send personalized emails via SMTP.
+Before running the notebooks, you need to prepare the following files. It is recommended to copy the examples from the `sample/` directory, customize them, and place them in the `data/` directory.
 
-## Notebook pipeline details
+Let `<exam_prefix>` be the base name for your exam (e.g., `VTC Test`).
 
-### Shared utilities (`grading_utils.py`)
-- `setup_paths(prefix, data_dir, base_dir="..")` builds the centralized path dictionary used by every notebook: it resolves the source PDF, name list, marking scheme, and every output folder under `marking_form/<exam>`, including images, annotations, questions, JavaScript, marked variants, and `cache/`.
-- `create_directories(paths)` creates those directories in advance so notebooks can write image exports, HTML, and JSON files without manual `mkdir` calls.
-- `init_gemini_client(env_path="../.env")` reads `GOOGLE_GENAI_API_KEY` from `.env`, fails fast if the key is missing, and returns a Vertex AI Express Mode client shared across the pipeline.
-- `create_gemini_config()` standardizes the safety settings plus default temperature/top-p so each OCR and grading request behaves consistently.
-- `load_annotations(annotations_path)` flattens the saved bounding boxes, rekeys them by label, and returns the ordered `questions` list (`NAME`, `ID`, `CLASS`, then every question) for Steps 4–6.
-- `build_student_id_mapping(base_path_questions, base_path_annotations)` reads the `ID/mark.json` entry to map pages back to student IDs and exposes `getStudentId(page)` for downstream lookups.
-- `markdown_to_html()` converts the Gemini performance feedback into HTML snippets that `step7` embeds in every email body.
-- `get_cache_key`, `get_from_cache`, and `save_to_cache` hash prompt parameters and store JSON in `cache/` so OCR, grading, and performance calls only hit Gemini when input truly changes.
+### 1. Scanned Student Scripts
+-   **File**: `data/<exam_prefix>.pdf`
+-   **Description**: A single PDF file containing all the scanned, handwritten student answer sheets.
+
+### 2. Student Roster
+-   **File**: `data/<exam_prefix> Name List.xlsx`
+-   **Description**: An Excel file listing your students. It **must** contain `ID`, `NAME`, and `CLASS` columns.
+-   **Template**: `sample/VTC Test Name List.xlsx`
+
+### 3. Answer Sheet Template
+-   **File**: `data/<exam_prefix> Answer Sheet.docx`
+-   **Description**: A Microsoft Word document that will be used as a template to generate individual answer sheets for printing. This is used in Step 1. It should contain `Name:`, `Student ID:`, and `Class:` placeholders.
+-   **Template**: `sample/VTC Test Answer Sheet.docx`
+
+### 4. Marking Scheme
+-   **File**: `data/<exam_prefix> Marking Scheme.docx`
+-   **Description**: A Microsoft Word document containing the questions, standard answers, and marking rubric. This will be processed by Gemini in Step 2.
+-   **Template**: `sample/VTC Test Marking Scheme.docx`
+
+### 5. Email Configuration
+-   **File**: `smtp.config` (in the project root)
+-   **Description**: Your SMTP server credentials for sending emails in Step 7.
+-   **Template**: `smtp-template.config`. Rename this file to `smtp.config` and fill in your details.
+
+## Workflow: Notebook by Notebook
+
+Follow these steps in order by running the Jupyter notebooks located in the `notebbooks/` directory. In each notebook, remember to set the `prefix` variable to match your `<exam_prefix>`.
 
 ### Step 1: Generate Answer Sheets (`step1_generate_answer_sheet.ipynb`)
-- Loads the Name List Excel (use `sample/VTC Test Name List.xlsx` as the example), validates every student ID is unique, replaces the `Name:`, `Student ID:`, and `Class:` placeholders inside the DOCX template, and saves each student’s custom DOCX file.
-- Converts each DOCX to PDF via headless LibreOffice, merges all PDFs into `../data/<prefix> Answer Sheets Combined.pdf`, and removes the intermediate per-student files.
+- **Purpose**: Creates personalized answer sheets for each student, ready for printing.
+- **Inputs**:
+    - `data/<exam_prefix> Name List.xlsx`
+    - `data/<exam_prefix> Answer Sheet.docx`
+- **Output**:
+    - `data/<exam_prefix> Answer Sheets Combined.pdf`: A single, combined PDF of all student answer sheets.
 
-### Step 2: Extract the Marking Scheme (`step2_generate_marking_scheme_excel.ipynb`)
-- Converts the Word marking scheme into markdown using `mammoth` and `html2text`, then feeds the markdown to Vertex AI Gemini with a structured schema (`MarkingSchemeResponse`) so every question yields `question_number`, `question_text`, `marking_scheme`, and `marks`, plus a shared `general_grading_guide`.
-- Validates that every `marking_scheme` is non-empty (raising a friendly error if any are missing), appends the general guide to each question’s rubric, and writes the clean data to an Excel workbook with `Marking Scheme` and `Summary` sheets.
+### Step 2: Extract Marking Scheme (`step2_generate_marking_scheme_excel.ipynb`)
+- **Purpose**: Uses Gemini to parse the `.docx` marking scheme and convert it into a structured Excel file.
+- **Input**:
+    - `data/<exam_prefix> Marking Scheme.docx`
+- **Output**:
+    - `data/<exam_prefix> Marking Scheme.xlsx`: A structured Excel file containing the rubric, which will be used for AI grading in Step 4.
 
-### Step 3: Define Answer Bounding Boxes (`step3_question_annotations.ipynb`)
-- Converts the exam PDF into JPEG pages with `pdf2image`, stores the result under `marking_form/<exam>/images/`, and lets you configure `number_of_pages` for quick tests.
-- Starts Vertex AI Express Mode (via `init_gemini_client`) to auto-detect bounding boxes, but also lets you manually adjust the regions; the cleaned `annotations.json` becomes the authoritative source for every question label.
+### Step 3: Define Answer Regions (`step3_question_annotations.ipynb`)
+- **Purpose**: Identify the location of each answer on the scanned exam pages.
+- **Input**:
+    - `data/<exam_prefix>.pdf` (the scanned, completed student scripts)
+- **Process**:
+    1.  Converts the PDF into JPEG images.
+    2.  Uses Gemini to auto-detect bounding boxes for each answer.
+    3.  Provides an interactive widget for you to review and adjust the bounding boxes.
+- **Outputs**:
+    - `marking_form/<exam_prefix>/images/`: JPEG image of each scanned page.
+    - `marking_form/<exam_prefix>/annotations/annotations.json`: The final bounding box data.
 
 ### Step 4: Scoring Preprocessing (`step4_scoring_preprocessing.ipynb`)
-- Loads annotations, `Name List`, and the structured marking scheme into `standard_answer_df`, derives dictionaries for question text and marks, and copies the UI assets from `templates/javascript/` plus `favicon.ico`.
-- Renders `index.html` and every `questions/<question>/index.html` + `question.js` via Jinja2 (with a Markdown filter) so graders can view extracted answers, similarity scores, reasoning, and marks.
-- Defines `ocr_image_from_file()` (cropping + sharpening) and the `grade_answer()`/`grade_answers()` helpers that call Gemini with consistent configs, cache the replies, and return structured `GradingResult` objects containing `similarity_score`, `mark`, and `reasoning`.
-- Iterates through every question, runs OCR and grading on the captured images, writes `data.csv` for each question, and renders the JavaScript-powered UI so you can approve or override the auto-scores before submitting them to the web interface.
+- **Purpose**: Performs OCR, grades the answers with Gemini, and generates a web UI for the educator to review the results.
+- **Inputs**:
+    - `marking_form/<exam_prefix>/images/*.jpg`
+    - `marking_form/<exam_prefix>/annotations/annotations.json`
+    - `data/<exam_prefix> Marking Scheme.xlsx`
+- **Output**:
+    - A local website in `marking_form/<exam_prefix>/`. You can launch it by running `server.py` and access it in your browser to review, adjust, and finalize scores. When you save marks in the UI, `mark.json` files are created for each question.
+    - `cache/`: Contains cached Gemini API responses for OCR and grading to speed up reruns.
 
 ### Step 5: Post-Scoring Checks (`step5_post_scoring_checks.ipynb`)
-- Walks every question subdirectory to ensure `mark.json` exists and no entries leave both `mark` and `overridedMark` blank, warning if tokens still need grading.
-- Cross-checks the marked IDs against the uploaded name list (reporting IDs that are missing in either direction).
-- Removes temporary `control-*.json` and `mark-*.json` files generated by the website so the final data stays clean.
+- **Purpose**: Verifies that all answers have been scored and checks for data inconsistencies before final packaging.
+- **Inputs**:
+    - `marking_form/<exam_prefix>/questions/**/mark.json`
+    - `data/<exam_prefix> Name List.xlsx`
+- **Process**:
+    - Confirms every question has a mark for every student.
+    - Verifies student IDs from the grading UI against the name list.
+    - Cleans up temporary files generated by the web UI.
 
--### Step 6: Post-Scoring Packaging (`step6_scoring_postprocessing.ipynb`)
- - Reapplies the version-file cleanup, zips the generated website, and copies the raw scanned images into `marked/images/` to annotate them without touching the originals.
- - Reads every question’s `mark.json`, uses `build_student_id_mapping()` plus the annotation ordering to derive `marksDf` (ID, NAME, CLASS, per-question marks, total `Marks`) that prefers the name list values for student names.
- - Overlays each annotation label with its final mark via OpenCV, stitches each student’s pages into `marked/pdfs/<ID>.pdf`, merges everything into `marked/scripts/all.pdf`, and builds curated sample PDFs (good/average/weak) by inserting the real scripts between template pages from `templates/pdf/`.
- - Pivots the collected answers and reasoning data into wide sheets and saves them along with `marksDf` into `details_score_report.xlsx` plus a lightweight `score_report.xlsx`, then calls Gemini (with caching) to write a `Performance` narrative per student.
- - Archives the scripted folder as `scripts.zip` for sharing.
- - Outputs explained:
-	 * `marking_form/<prefix>/images/` – annotated copies of every page used for creating the marked scripts.
-	 * `marking_form/<prefix>/questions/` – each question folder now contains the latest `mark.json`, `data.csv`, and generated HTML/JS controls so you can re-open the web UI or inspect individual grading data.
-	 * `marking_form/<prefix>/details_score_report.xlsx` – multi-sheet workbook (Marks, Answers, Reasoning, AnswersRaw, ReasoningRaw) that feeds `step7` and can be shared with stakeholders.
-	 * `marking_form/<prefix>/score_report.xlsx` – concise marks-only sheet with ID, NAME, CLASS, and total `Marks`.
-	 * `marking_form/<prefix>/marked/pdfs/<ID>.pdf` – per-student scored scripts; `marked/scripts/all.pdf` combines them, and `scripts.zip` bundles the folder for distribution.
-	 * `marking_form/<prefix>.zip` – zipped copy of the scored website for archival or sharing.
-	 * `cache/` – stores OCR/grading/performance responses keyed by prompt parameters so rerunning notebooks reuses previous Gemini calls instead of re-calling the API.
-	 - How the files are produced:
-		 1. `marking_form/<prefix>/images/` and `annotations/` are populated in `step3_question_annotations.ipynb` by converting the scanned PDF to JPEGs and writing `annotations.json` after you adjust bounding boxes.
-		 2. Each `questions/<Question>` directory is created in `step4_scoring_preprocessing.ipynb`: OCRed answers are written to `data.csv`, Gemini scores to `mark.json`, and the Jinja2 templates output the HTML/JS that powers the review UI.
-		 3. `details_score_report.xlsx` plus `score_report.xlsx` and the `Performance` sheet are generated in `step6_scoring_postprocessing.ipynb` after collecting all marks/answers/reasoning, casting wide pivots, and calling Gemini for narrative summaries.
-		 4. The marked images, per-student PDFs, combined `scripts/all.pdf`, curated `sampleOf*.pdf`, and website zip originate from the later cells of `step6`, which copy images, draw annotations via OpenCV, save PDFs with Pillow, merge them with PyPDF4, and zip both the website and `marked_scripts` directory.
-		 5. `cache/` files are created whenever `get_cache_key()` is used in steps 4 and 6 for OCR, grading, and performance prompts; the utilities in `grading_utils.py` stash the Vertex AI responses so the same prompt reuses previous answers.
-	- Explain each resulting file/folder (images/, annotations/, questions/, marked/, score reports, Performance sheet, scripts.zip, website zip, cache entries)
+### Step 6: Post-Scoring Packaging (`step6_scoring_postprocessing.ipynb`)
+- **Purpose**: Generates all final reports, annotated PDFs, and archives.
+- **Inputs**:
+    - All data from the previous steps, primarily `mark.json` files.
+- **Outputs**: See the **Key Outputs** section below for a detailed list of generated files, including score reports and marked scripts.
 
 ### Step 7: Email Scores (`step7_email_score.ipynb`)
-- Loads SMTP credentials from `smtp.config` (copy `smtp-template.config` and fill in secrets beforehand), reads `details_score_report.xlsx` (the `Marks` sheet plus the optional `Performance` sheet), and maps IDs to scored PDFs under `marked/pdfs/`.
-- Converts the markdown `PerformanceReport` into HTML via `markdown_to_html()`, formats the email body with `body_template`, attaches each student’s `<ID>.pdf`, and delivers the message through TLS-authenticated SMTP while showing a progress bar.
+- **Purpose**: Sends a personalized email to each student with their score, a performance report, and their marked script.
+- **Inputs**:
+    - `smtp.config`
+    - `marking_form/<exam_prefix>/marked/scripts/details_score_report.xlsx`
+    - `marking_form/<exam_prefix>/marked/pdfs/<ID>.pdf`
 
-## Generated outputs (per prefix)
-- `marking_form/<prefix>/images/` – JPEG exports of every scanned page used for OCR and markup.
-- `marking_form/<prefix>/annotations/annotations.json` – bounding box metadata used by the web UI (also creates `annotations_list`, `annotations_dict`, and `questions` for scoring).
-- `marking_form/<prefix>/questions/<Question>/mark.json` – saved marks/overrides for each question plus `data.csv` for answers, similarity scores, and reasoning.
-- `marking_form/<prefix>/marked/` – contains `images/` (annotated copies), `pdfs/<ID>.pdf` (per-student scored scripts), and `scripts/all.pdf` (combined bundle of all students) plus curated samples (e.g., `sampleOf3.pdf`).
-- `marking_form/<prefix>/details_score_report.xlsx` and `score_report.xlsx` – Excel exports that include marks, answers, reasoning, and the Gemini-generated performance narratives (used by `step7`).
-- `marking_form/<prefix>.zip` and `scripts.zip` – zipped copies of the grading website and the scored scripts folder for handoff.
-- `cache/` – stores JSON responses keyed by `get_cache_key()` for OCR, grading, and performance prompts so reruns avoid re-querying Vertex AI.
+## Key Outputs
+
+All outputs are generated within the `marking_form/<exam_prefix>/` directory, organized by exam prefix.
+
+-   **Excel Score Reports**:
+    -   `marking_form/<exam_prefix>/marked/scripts/details_score_report.xlsx`: A comprehensive multi-sheet workbook containing final marks, captured answers, AI reasoning, raw data for auditing, and a Gemini-generated performance summary for each student.
+    -   `marking_form/<exam_prefix>/marked/scripts/score_report.xlsx`: A concise, marks-only sheet with student ID, Name, Class, and Total Marks.
+
+-   **Scored Student Scripts (PDFs)**:
+    -   `marking_form/<exam_prefix>/marked/pdfs/<ID>.pdf`: An individually scored script for each student, with marks annotated on the pages.
+    -   `marking_form/<exam_prefix>/marked/scripts/all.pdf`: A combined PDF containing all the scored student scripts.
+    -   `marking_form/<exam_prefix>/marked/scripts/sampleOf*.pdf`: Curated samples of good, average, and weak work.
+
+-   **Archives**:
+    -   `marking_form/<exam_prefix>.zip`: A zipped archive of the grading website for archival or sharing.
+    -   `marking_form/<exam_prefix>/marked/scripts.zip`: A zipped archive of the `marked/scripts` folder, containing all generated PDFs and Excel reports.
+
+-   **Intermediate Data**:
+    -   `marking_form/<exam_prefix>/questions/`: Contains the per-question data (`data.csv`, `mark.json`) and the web UI files.
+    -   `cache/`: Caches Gemini API calls to avoid redundant processing and costs on subsequent runs.
