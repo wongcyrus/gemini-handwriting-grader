@@ -12,6 +12,7 @@ google-genai
 # Data Processing
 pandas
 openpyxl
+numpy
 
 # PDF & Document Processing
 pdf2image
@@ -43,6 +44,7 @@ ipykernel
 Jinja2
 termcolor
 markdown
+matplotlib
 
 # Utilities
 requests
