@@ -1,0 +1,49 @@
+# Core Web Server
+Flask
+Werkzeug
+
+# Environment & Configuration
+python-dotenv
+configparser
+
+# Google Gemini AI
+google-genai
+
+# Data Processing
+pandas
+openpyxl
+
+# PDF & Document Processing
+pdf2image
+PyPDF4
+pypdf
+python-docx
+reportlab
+mammoth
+html2text
+
+# Image Processing
+Pillow
+opencv-python
+imageio
+
+# Email
+python-bidi
+
+# Data Validation
+pydantic
+
+# Jupyter Widgets (for annotation interface)
+jupyter-bbox-widget
+ipywidgets
+IPython
+ipykernel
+
+# Formatting & Output
+Jinja2
+termcolor
+markdown
+
+# Utilities
+requests
+tqdm

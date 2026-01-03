@@ -1,0 +1,41 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+	"features": {		
+		"ghcr.io/devcontainers/features/python:1": {
+			"version": "3.14.2"
+		}
+	},
+	"hostRequirements": {
+		"cpus": 4
+	},
+	"waitFor": "onCreateCommand",
+	"onCreateCommand": "sudo apt-get update && sudo apt-get install -y libjpeg-dev zlib1g-dev libtiff-dev libfreetype6-dev liblcms2-dev libwebp-dev libharfbuzz-dev libfribidi-dev libxcb1-dev poppler-utils ffmpeg libsm6 libxext6 libreoffice-writer",
+	"updateContentCommand": "python -m pip install -r requirements.txt",
+	"postCreateCommand": "",
+	"customizations": {
+		"codespaces": {
+			"openFiles": []
+		},
+		"vscode": {
+			"settings": {
+				"python.defaultInterpreterPath": "~/.python/current/bin/python3"
+			},
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-python.black-formatter",
+				"ms-python.flake8",
+				"ms-python.pylint",
+				"ms-toolsai.jupyter",
+				"GitHub.copilot"
+			]
+		},
+		"settings": {
+			"python.defaultInterpreterPath": "~/.python/current/bin/python3",
+			"python.linting.enabled": true,
+			"python.linting.flake8Path": "/usr/local/py-utils/bin/flake8",
+			"python.linting.flake8Enabled": true
+		}
+	}
+}

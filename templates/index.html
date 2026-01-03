@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>Grading form for {{studentsScriptFileName}}</title>
+    <style>
+        {% raw %}
+        body {background-color: white;}
+        {% endraw %}
+    </style>
+</head>
+<body>
+	<header>
+        <h1>Scoring forms for {{studentsScriptFileName}}</h1>
+	</header>	
+	<section>
+        <h2>Questions with text answer</h2>
+        <ul>
+        {% for page in textAnswer -%}
+            <li><a href="questions/{{ page }}/index.html" >{{ page }}<a/></li>    
+        {% endfor %}
+        </ul>
+        <h2>Questions with options answer</h2>
+        <ul>
+        {% for page in optionAnswer -%}
+            <li><a href="questions/{{ page }}/index.html" >{{ page }}<a/></li>    
+        {% endfor %}
+        </ul>
+	</section>
+	<footer>
+		<p>Created by Higher Diploma in Cloud and Data Centre Administration Developement Team. </p>
+	</footer>
+</body>
+</html>
