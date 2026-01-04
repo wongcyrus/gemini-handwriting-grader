@@ -215,14 +215,15 @@ $(document).ready(() => {
         $('#largeImage').attr('src', $(this).attr('src'));              
     });
 
-    $('.mark').on('keyup input', e => {
+    $(document).on('keyup input', '.mark', function(e) {
         let mark = e.target.value;
         $("#" + e.target.id + "-locked").html(mark);
         saveMark();
     });
 
-    $('.lock').on('click', e => {
+    $(document).on('click', '.lock', function(e) {
         $("#" + e.target.id).html("");
+        saveMark();
     });
     
     $('#controlForm').on('keyup change paste', 'input, select, textarea, radio', e => {
