@@ -288,6 +288,107 @@ def create_gemini_config(temperature=0, top_p=0.5, max_output_tokens=4096, **kwa
 
 
 # =======================
+# Validation Functions
+# =======================
+
+def validate_required_files(*file_paths):
+    """
+    Validate that all required files exist.
+    
+    Args:
+        *file_paths: Variable number of file paths to check, or a single paths dictionary
+        
+    Returns:
+        tuple: (is_valid, errors) when individual paths are passed
+        list: errors when a paths dictionary is passed (for backward compatibility)
+    """
+    errors = []
+    
+    # Handle case where a single paths dictionary is passed
+    if len(file_paths) == 1 and isinstance(file_paths[0], dict):
+        paths_dict = file_paths[0]
+        # Check key files from the paths dictionary
+        key_files = ['pdf_file', 'name_list_file', 'marking_scheme_file']
+        for key in key_files:
+            if key in paths_dict:
+                file_path = paths_dict[key]
+                if not os.path.exists(file_path):
+                    errors.append(f"Required file not found: {file_path}")
+        # Return just errors list for backward compatibility with enhanced notebooks
+        return errors
+    else:
+        # Handle individual file paths
+        for file_path in file_paths:
+            if not os.path.exists(file_path):
+                errors.append(f"Required file not found: {file_path}")
+        
+        is_valid = len(errors) == 0
+        return is_valid, errors
+
+
+def validate_student_ids(df):
+    """
+    Validate that student IDs in DataFrame are unique.
+    
+    Args:
+        df: pandas DataFrame containing student data with 'ID' column
+        
+    Returns:
+        tuple: (is_valid, errors) where is_valid is bool and errors is list of strings
+    """
+    errors = []
+    
+    # Check if ID column exists
+    if 'ID' not in df.columns:
+        errors.append("DataFrame must contain 'ID' column")
+        return False, errors
+    
+    # Check for duplicate IDs
+    duplicate_ids = df[df.duplicated(subset=['ID'], keep=False)].sort_values('ID')
+    
+    if not duplicate_ids.empty:
+        errors.append("Duplicate Student IDs detected:")
+        for _, row in duplicate_ids.iterrows():
+            id_val = row['ID']
+            name_val = row.get('NAME', 'Unknown')
+            class_val = row.get('CLASS', 'Unknown')
+            errors.append(f"  ID: {id_val}, Name: {name_val}, Class: {class_val}")
+    
+    # Check for missing/null IDs
+    null_ids = df[df['ID'].isnull()]
+    if not null_ids.empty:
+        errors.append(f"Found {len(null_ids)} students with missing/null IDs")
+    
+    is_valid = len(errors) == 0
+    return is_valid, errors
+
+
+def print_validation_summary(title, is_valid, errors):
+    """
+    Print a formatted validation summary.
+    
+    Args:
+        title: Title for the validation check
+        is_valid: Boolean indicating if validation passed
+        errors: List of error messages
+    """
+    print(f"\n{'='*60}")
+    print(f"📋 {title}")
+    print(f"{'='*60}")
+    
+    if is_valid:
+        print("✅ VALIDATION PASSED")
+        print("   All checks completed successfully")
+    else:
+        print("❌ VALIDATION FAILED")
+        print(f"   Found {len(errors)} error(s):")
+        for i, error in enumerate(errors, 1):
+            print(f"   {i}. {error}")
+    
+    print(f"{'='*60}")
+
+
+# =======================
 # Markdown Conversion
 # =======================
 

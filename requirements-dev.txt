@@ -16,8 +16,7 @@ numpy
 
 # PDF & Document Processing
 pdf2image
-PyPDF4
-pypdf
+pypdf  # Modern PDF library (replaces deprecated PyPDF4)
 python-docx
 reportlab
 mammoth
