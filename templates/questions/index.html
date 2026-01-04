@@ -3,7 +3,7 @@
 <head>
 {% include 'questions/header.html' %}    
     <script>
-        let table;
+        window.table;
         $(document).ready( function () {          
             const refreshMark = ()=>{
                 let fullMark = $('#fullMark').val();
@@ -30,12 +30,13 @@
                 saveMark();
             };
             
-            table = $('#marksheet').DataTable({
+            window.table = $('#marksheet').DataTable({
                 order: [[ 3, "desc" ]],
                 paging: false,
                 autoWidth: true,
                 columnDefs: [
                     { width: '50%', targets: 1 },
+                    { visible: false, targets: 1 },  // Hide Image column by default
                     { 
                         targets: 3,
                         render: function(data, type, row) {
@@ -47,6 +48,56 @@
                     }
                 ],
             } );
+            
+            // Hide imageControls by default since Image column is hidden
+            $('#imageControls').css('display', 'none');
+            
+            // Function to get column visibility from cookies
+            function getColumnVisibility(columnName) {
+                const name = `col-${columnName}=`;
+                const decodedCookie = decodeURIComponent(document.cookie);
+                const ca = decodedCookie.split(';');
+                for(let i = 0; i < ca.length; i++) {
+                    let c = ca[i].trim();
+                    if (c.indexOf(name) == 0) {
+                        return c.substring(name.length, c.length) === 'true';
+                    }
+                }
+                return null;
+            }
+            
+            // Apply saved column visibility from cookies
+            $('a.toggle-vis, button.toggle-vis').each(function() {
+                let columnName = $(this).text().toLowerCase();
+                let savedVisibility = getColumnVisibility(columnName);
+                
+                if (savedVisibility !== null) {
+                    let colNum = $(this).attr('data-column');
+                    let column = window.table.column(colNum);
+                    column.visible(savedVisibility);
+                    
+                    // Update imageControls visibility for Image column
+                    if (columnName === 'image') {
+                        if (savedVisibility) {
+                            $('#imageControls').css('display', 'contents');
+                        } else {
+                            $('#imageControls').css('display', 'none');
+                        }
+                    }
+                }
+            });
+            
+            // Initialize toggle button styles
+            $('a.toggle-vis, button.toggle-vis').each(function() {
+                let colNum = $(this).attr('data-column');
+                let column = window.table.column(colNum);
+                let isVisible = column.visible();
+                if (isVisible) {
+                    $(this).css({'background-color': '#4CAF50', 'color': 'white', 'border-color': '#45a049'});
+                } else {
+                    $(this).css({'background-color': '#f5f5f5', 'color': '#999', 'border-color': '#ccc'});
+                }
+            });
             
             $('#minimumSimilarity').on('change',function(e){
                 $('#currentSimilarity').html(e.target.value);
@@ -73,7 +124,9 @@
 </head>
 <body>
 	<header>
-        <a href="../../index.html">Back to the question list</a>        
+        <div style="margin-bottom: 10px;">
+            <a href="../../index.html">Back to the question list</a>
+        </div>
         <h1>Scoring forms for {{studentsScriptFileName}} - {{question}}</h1>
         <p>Answer: {{standardAnswer|markdown|safe if standardAnswer is not none}}</p>       
 	</header>
@@ -82,53 +135,73 @@
             <img id="largeImage" src="" style="vertical-align: top; padding: 0px 10px 10px 2px; width: 100%; height: 100%" />
         </div>
 
-        <form id="controlForm" action="" method="get" class="form">
-            <div class="form">
-                <label for="fullMark">The full mark of this question (1-100):</label>
-                <input type="number" id="fullMark" name="fullMark" min="1" max="100" value="{{standardMark}}">
+        <div style="margin-bottom: 15px;">
+            <!-- Control Form - First Row -->
+            <form id="controlForm" action="" method="get" style="display: flex; gap: 8px 12px; font-size: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                    <label for="fullMark" style="font-size: 14px; min-width: 60px;">Full mark:</label>
+                    <input type="number" id="fullMark" name="fullMark" min="1" max="100" value="{{standardMark}}" style="width: 50px; font-size: 14px;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                    <label for="minimumSimilarity" style="font-size: 14px; min-width: 60px;">Similarity:</label>
+                    <input type="range" id="minimumSimilarity" name="minimumSimilarity" min="0.1" max="1" value="0.8" step="0.01" style="width: 80px;" />
+                    <span id="currentSimilarity" style="width: 25px; font-size: 13px;">0.8</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                    <label for="granularity" style="font-size: 14px; min-width: 60px;">Granularity:</label>
+                    <input type="range" id="granularity" name="granularity" min="0" max="1" value="1" step="0.25" style="width: 80px;" />  
+                    <span id="currentGranularity" style="width: 25px; font-size: 13px;">1</span>
+                </div>
+                <div id="imageControls" style="display: contents;">
+                    <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                        <label for="zoom" style="font-size: 14px;">Zoom:</label>
+                        <input type="range" id="zoom" name="zoom" min="0.1" max="2" value="1" step="0.1" style="width: 80px;" />  
+                        <span id="currentZoom" style="width: 25px; font-size: 13px;">1</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                        <label for="top" style="font-size: 14px;">Top:</label>
+                        <input type="number" id="top" name="top" min="0" step="10" class="changeBoundBox" value="{{estimatedBoundingBox["top"]}}" style="width: 60px; font-size: 14px;" />
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                        <label for="left" style="font-size: 14px;">Left:</label>
+                        <input type="number" id="left" name="left" min="0" step="10" class="changeBoundBox" value="{{estimatedBoundingBox["left"]}}" style="width: 60px; font-size: 14px;" />
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                        <label for="height" style="font-size: 14px;">Height:</label>
+                        <input type="number" id="height" name="height" min="0" step="10" class="changeBoundBox" value="{{estimatedBoundingBox["height"]}}" style="width: 60px; font-size: 14px;" />
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                        <label for="width" style="font-size: 14px;">Width:</label>
+                        <input type="number" id="width" name="width" min="0" step="10" class="changeBoundBox" value="{{estimatedBoundingBox["width"]}}" style="width: 60px; font-size: 14px;" />
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Toggle Buttons - Second Row -->
+            <div style="display: flex; gap: 3px; align-items: center;">
+                <span style="font-weight: bold; font-size: 11px; white-space: nowrap;">Show/Hide:</span>
+                <button type="button" class="toggle-vis" data-column="1" style="padding: 2px 5px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">Image</button>
+                <button type="button" class="toggle-vis" data-column="2" style="padding: 2px 5px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">Answer</button>
+                <button type="button" class="toggle-vis" data-column="3" style="padding: 2px 5px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">Mark</button>
+                <button type="button" class="toggle-vis" data-column="4" style="padding: 2px 5px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">Similarity</button>
+                <button type="button" class="toggle-vis" data-column="5" style="padding: 2px 5px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">Reasoning</button>
             </div>
-            <div class="form">
-                <label for="minimumSimilarity">The minimum Similarity value of full mark:</label>
-                <input type="range" id="minimumSimilarity" name="minimumSimilarity" min="0.1" max="1" value="0.8" step="0.01" />
-                (<span id="currentSimilarity">0.8</span>)
-            </div>
-            <div class="form">
-                <label for="granularity">The granularity of mark:</label>
-                <input type="range" id="granularity" name="granularity" min="0" max="1" value="1" step="0.25" />  
-                (<span id="currentGranularity">1</span>)   
-            </div> 
-            <div class="form">
-                <label for="zoom">Image Zoom:</label>
-                <input type="range" id="zoom" name="zoom" min="0.1" max="2" value="1" step="0.1" />  
-                (<span id="currentZoom">1</span>)   
-            </div>
-            <div class="form">
-                <label for="left">Left:</label>
-                <input type="number" id="left" name="left" min="0" step="10" class="changeBoundBox" value="{{estimatedBoundingBox["left"]}}" />                   
-            </div>
-            <div class="form">
-                <label for="top">Top:</label>
-                <input type="number" id="top" name="top" min="0" step="10" class="changeBoundBox" value="{{estimatedBoundingBox["top"]}}" />                                  
-            </div>
-            <div class="form">
-                <label for="height">Height:</label>
-                <input type="number" id="height" name="height" min="0" step="10" class="changeBoundBox" value="{{estimatedBoundingBox["height"]}}" />                           
-            </div>
-                <div class="form">
-                <label for="width">Width:</label>
-                <input type="number" id="width" name="width" min="0" step="10" class="changeBoundBox" value="{{estimatedBoundingBox["width"]}}" />                               
-            </div>
-        </form>
-        <div>
-            Show/Hide column:
-            <a class="toggle-vis" data-column="1" href="#">Image</a> -
-            <a class="toggle-vis" data-column="2" href="#">Answer</a> - 
-            <a class="toggle-vis" data-column="3" href="#">Mark</a> - 
-            <a class="toggle-vis" data-column="4" href="#">Similarity</a> -
-            <a class="toggle-vis" data-column="5" href="#">Reasoning</a>     
         </div>
         <div>
             <p>If your type in the mark, it will be locked. To unlock, click on the mark below the mark input.</p>
+        </div>
+        <div style="margin: 20px 0; padding: 10px; background-color: #f5f5f5; border-radius: 5px;">
+            {% if prev_question %}
+                <a href="../{{prev_question}}/index.html">← Previous: {{prev_question}}</a>
+            {% else %}
+                <span style="color: #999;">← Previous</span>
+            {% endif %}
+            <span style="margin: 0 10px;">|</span>
+            {% if next_question %}
+                <a href="../{{next_question}}/index.html">Next: {{next_question}} →</a>
+            {% else %}
+                <span style="color: #999;">Next →</span>
+            {% endif %}
         </div>
         <form id="markForm" action="" method="get" class="form">
             <table id="marksheet" class="display" style="width:100%">
@@ -179,6 +252,21 @@
                 </tbody>
             </table>
         </form>
+        <div style="margin: 20px 0; padding: 10px; background-color: #f5f5f5; border-radius: 5px;">
+            <a href="../../index.html">Back to the question list</a>
+            <span style="margin: 0 20px;">|</span>
+            {% if prev_question %}
+                <a href="../{{prev_question}}/index.html">← Previous: {{prev_question}}</a>
+            {% else %}
+                <span style="color: #999;">← Previous</span>
+            {% endif %}
+            <span style="margin: 0 10px;">|</span>
+            {% if next_question %}
+                <a href="../{{next_question}}/index.html">Next: {{next_question}} →</a>
+            {% else %}
+                <span style="color: #999;">Next →</span>
+            {% endif %}
+        </div>
 	</section>
 	<footer>
 		<p>Created by Higher Diploma in Cloud and Data Centre Administration Developement Team. </p>

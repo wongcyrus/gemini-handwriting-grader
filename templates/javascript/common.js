@@ -134,13 +134,60 @@ const zoomImage = (callback)=>{
 $(document).ready(() => {     
     loadControlForm(()=>loadMark(()=>zoomImage(()=>saveMark())));  
     
+    // Function to save column visibility to cookies
+    function saveColumnVisibility(columnName, isVisible) {
+        document.cookie = `col-${columnName}=${isVisible}; path=/; max-age=31536000`; // 1 year
+    }
     
-    $('a.toggle-vis').on( 'click', function (e) {
+    // Function to get column visibility from cookies
+    function getColumnVisibility(columnName) {
+        const name = `col-${columnName}=`;
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const ca = decodedCookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+            let c = ca[i].trim();
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length) === 'true';
+            }
+        }
+        return null; // No cookie found
+    }
+    
+    // Function to update button styling based on visibility
+    function updateButtonStyle(btn, isVisible) {
+        if (isVisible) {
+            btn.css({'background-color': '#4CAF50', 'color': 'white', 'border-color': '#45a049'});
+        } else {
+            btn.css({'background-color': '#f5f5f5', 'color': '#999', 'border-color': '#ccc'});
+        }
+    }
+    
+    // Handle toggle clicks
+    $('a.toggle-vis, button.toggle-vis').on( 'click', function (e) {
         e.preventDefault();
-        // Get the column API object
-        let column = table.column( $(this).attr('data-column') );
-        // Toggle the visibility
-        column.visible( ! column.visible() );
+        if (window.table) {
+            let column = window.table.column( $(this).attr('data-column') );
+            let columnName = $(this).text().toLowerCase();
+            column.visible( ! column.visible() );
+            updateButtonStyle($(this), column.visible());
+            
+            // Save to cookie
+            saveColumnVisibility(columnName, column.visible());
+            
+            // Hide/show image controls based on Image column visibility
+            if ($(this).attr('data-column') === '1' || $(this).attr('data-column') === '0') {  // Image column
+                if (column.visible()) {
+                    $('#imageControls').css('display', 'contents');
+                    // Apply zoom settings when showing images
+                    zoomImage();
+                } else {
+                    $('#imageControls').css('display', 'none');
+                }
+            }
+            
+            // Recalculate column widths after toggling
+            window.table.columns.adjust().draw(false);
+        }
     } );
 
 
