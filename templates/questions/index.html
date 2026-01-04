@@ -243,8 +243,8 @@
                     <td>{{'%0.2f'| format([row["Similarity"],0]|max|float)}}</td>
                     <td>{{row.get("Reasoning", "N/A")}}
                         {% if row.get("ModeratorFlag") == True %}<br/>
-                            <strong>Moderator Note:{{row.get("ModeratorNote", "N/A")}}</strong>
-                            <strong> Change from {{row.get("MarkRaw", "N/A")}} to  {{row.get("Mark", "N/A")}}</strong>
+                            <strong>Moderator Note: {{row.get("ModeratorNote", "N/A")}}</strong>
+                            <strong>Change from {{row.get("MarkRaw", "N/A")}} to  {{row.get("Mark", "N/A")}}</strong>
                         {% endif %}
                     </td>                    
                   </tr>      

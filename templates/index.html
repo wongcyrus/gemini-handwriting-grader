@@ -14,15 +14,9 @@
         <h1>Scoring forms for {{studentsScriptFileName}}</h1>
 	</header>	
 	<section>
-        <h2>Questions with text answer</h2>
+        <h2>Questions</h2>
         <ul>
         {% for page in textAnswer -%}
-            <li><a href="questions/{{ page }}/index.html" >{{ page }}<a/></li>    
-        {% endfor %}
-        </ul>
-        <h2>Questions with options answer</h2>
-        <ul>
-        {% for page in optionAnswer -%}
             <li><a href="questions/{{ page }}/index.html" >{{ page }}<a/></li>    
         {% endfor %}
         </ul>
