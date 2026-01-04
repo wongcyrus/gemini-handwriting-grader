@@ -56,6 +56,12 @@ This system automates the entire grading process using enhanced Jupyter notebook
 
 ### 🆕 Enhanced Features
 
+#### **Step 2 Enhanced Features**
+- **Multi-Sheet Excel Output**: Professional 4-sheet workbook with comprehensive analysis
+- **Advanced AI Processing**: Enhanced Gemini integration with structured validation
+- **Comprehensive Error Handling**: Retry logic, fallback processing, and graceful degradation
+- **Professional Formatting**: Stakeholder-ready reports with detailed validation
+
 #### **Step 4 & 5 Enhancements**
 - **Comprehensive Error Handling**: Robust processing with graceful degradation
 - **Intelligent Caching**: Efficient API usage with organized cache structure
@@ -132,13 +138,16 @@ Run the enhanced Jupyter notebooks in `notebbooks/` directory in order. Each not
 - **Output**: `data/<exam_prefix> Answer Sheets Combined.pdf`
 
 ### Step 2: Extract Marking Scheme  
-**Notebook**: `step2_generate_marking_scheme_excel.ipynb`
+**Notebooks**: `step2_generate_marking_scheme_excel.ipynb` | `step2_generate_marking_scheme_excel_enhanced.ipynb`
 
 - **Purpose**: AI-powered parsing of marking scheme into structured Excel
 - **Enhanced Features**:
-  - Advanced Gemini integration with validation
-  - Comprehensive error handling
-  - Structured data validation
+  - ✅ **Advanced Gemini Integration**: Structured output with Pydantic validation
+  - ✅ **Comprehensive Error Handling**: Retry logic and fallback processing
+  - ✅ **Multi-Sheet Excel Output**: 4 professional sheets (Marking Scheme, Summary, Question Overview, Validation)
+  - ✅ **Enhanced Validation**: Question completeness and data integrity checks
+  - ✅ **Backup Protection**: Automatic backup of existing files
+  - ✅ **Professional Formatting**: Stakeholder-ready Excel reports
 - **Input**: `data/<exam_prefix> Marking Scheme.docx`
 - **Output**: `data/<exam_prefix> Marking Scheme.xlsx`
 
@@ -346,6 +355,7 @@ pip install -r requirements.txt
 ## 🎉 What's New in Enhanced Version
 
 ### **🆕 Major Enhancements**
+- **Complete Step 2 Enhanced Version**: Multi-sheet Excel output with comprehensive validation
 - **Complete Step 6 Overhaul**: Professional reports with AI insights
 - **Enhanced Steps 4 & 5**: Better error handling and validation
 - **Modern Library Stack**: Updated to current, supported versions
