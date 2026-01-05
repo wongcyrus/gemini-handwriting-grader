@@ -53,7 +53,7 @@
       "ms-python.black-formatter"
       "ms-python.flake8"
       "ms-python.pylint"
-      "ms-toolsai.jupyter"
+      "ms-toolsai.jupyter@2025.8.0"
     ];
     previews = { enable = true; previews = { }; };
     workspace = {

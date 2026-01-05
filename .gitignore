@@ -142,3 +142,4 @@ venv/*
 service-account-key.json
 cache/*
 .venv/*
+**.backup.*

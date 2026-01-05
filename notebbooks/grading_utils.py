@@ -11,6 +11,16 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+import logging
+
+logging.getLogger("google").setLevel(logging.WARNING)
+logging.getLogger("google.auth").setLevel(logging.WARNING)
+logging.getLogger("google.auth.transport").setLevel(logging.WARNING)
+logging.getLogger("google.auth.transport.requests").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("google.api_core.bidi").setLevel(logging.ERROR)
+logging.getLogger("google.api_core.retry").setLevel(logging.ERROR)
+
 
 # =======================
 # Path and Config Setup
@@ -139,7 +149,7 @@ def get_from_cache(cache_key: str, cache_dir: str = "../cache"):
 
 def save_to_cache(cache_key: str, data: dict, cache_dir: str = "../cache"):
     """
-    Save result to cache.
+    Save result to cache with formatted JSON.
 
     Args:
         cache_key: Cache key hash
@@ -149,8 +159,8 @@ def save_to_cache(cache_key: str, data: dict, cache_dir: str = "../cache"):
     os.makedirs(cache_dir, exist_ok=True)
     cache_file = os.path.join(cache_dir, f"{cache_key}.json")
     try:
-        with open(cache_file, "w") as f:
-            json.dump(data, f)
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"Warning: Failed to save cache - {e}")
 
@@ -314,7 +324,7 @@ def validate_required_files(*file_paths):
                 file_path = paths_dict[key]
                 if not os.path.exists(file_path):
                     errors.append(f"Required file not found: {file_path}")
-        # Return just errors list for backward compatibility with enhanced notebooks
+        # Return just errors list for backward compatibility with notebooks
         return errors
     else:
         # Handle individual file paths

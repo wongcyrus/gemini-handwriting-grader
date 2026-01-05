@@ -1,6 +1,6 @@
 # Gemini-Handwriting-Grader
 
-An AI-powered, comprehensive handwriting grading system that transforms the traditional, time-consuming grading process into an efficient, automated workflow. This enhanced version provides educators with professional-grade tools for fair, consistent, and insightful assessment of handwritten student work.
+An AI-powered, comprehensive handwriting grading system that transforms the traditional, time-consuming grading process into an efficient, automated workflow. This system provides educators with professional-grade tools for fair, consistent, and insightful assessment of handwritten student work.
 
 ## 🎯 Why This System?
 
@@ -12,7 +12,7 @@ Traditional grading is physically exhausting and inefficient:
 - **Physical strain** leading to back and neck pain
 - **Limited insights** into class performance patterns
 
-## 🚀 Enhanced Solution
+## 🚀 Solution
 
 This system leverages Google's Gemini AI to provide:
 
@@ -29,7 +29,7 @@ This system leverages Google's Gemini AI to provide:
 - **Question-Level Analysis** for curriculum improvement
 
 ### **🛡️ Production-Ready Reliability**
-- **Enhanced Error Handling** with graceful degradation
+- **Robust Error Handling** with graceful degradation
 - **Modern Libraries** (pypdf 6.5.0, updated dependencies)
 - **Intelligent Caching** for efficient API usage
 - **Comprehensive Validation** at every processing step
@@ -40,40 +40,40 @@ This system leverages Google's Gemini AI to provide:
 - **Stratified Samples** for moderation and review
 - **Email Distribution** with personalized insights
 
-This enhanced version is completely **offline-capable** and can be used by all educators through GitHub Codespaces or local installation.
+This system is completely **offline-capable** and can be used by all educators through GitHub Codespaces or local installation.
 
-## 🔄 Enhanced Workflow
+## 🔄 Workflow
 
-This system automates the entire grading process using enhanced Jupyter notebooks that leverage Google's Gemini AI with comprehensive error handling and professional output generation:
+This system automates the entire grading process using Jupyter notebooks that leverage Google's Gemini AI with comprehensive error handling and professional output generation:
 
-1. **📋 Generate Answer Sheets**: Creates personalized answer sheets with enhanced PDF processing
+1. **📋 Generate Answer Sheets**: Creates personalized answer sheets with robust PDF processing
 2. **📖 Extract Marking Scheme**: AI-powered parsing of marking schemes with validation
 3. **🎯 Define Answer Regions**: Intelligent bounding box detection with interactive refinement
 4. **🤖 AI-Powered Scoring**: Advanced OCR and grading with caching and error recovery
-5. **✅ Review and Validation**: Enhanced web interface with comprehensive checks
+5. **✅ Review and Validation**: Web interface with comprehensive checks
 6. **📊 Generate Reports**: Professional multi-format reports with AI insights and visualizations
 7. **📧 Email Distribution**: Personalized emails with performance analytics and attachments
 
-### 🆕 Enhanced Features
+### 🆕 Features
 
-#### **Step 2 Enhanced Features**
+#### **Step 2 Features**
 - **Multi-Sheet Excel Output**: Professional 4-sheet workbook with comprehensive analysis
-- **Advanced AI Processing**: Enhanced Gemini integration with structured validation
+- **Advanced AI Processing**: Gemini integration with structured validation
 - **Comprehensive Error Handling**: Retry logic, fallback processing, and graceful degradation
 - **Professional Formatting**: Stakeholder-ready reports with detailed validation
 
-#### **Step 4 & 5 Enhancements**
+#### **Step 4 & 5 Features**
 - **Comprehensive Error Handling**: Robust processing with graceful degradation
 - **Intelligent Caching**: Efficient API usage with organized cache structure
-- **Enhanced Validation**: Metadata question handling (NAME/ID/CLASS exclusion)
+- **Metadata Validation**: Metadata question handling (NAME/ID/CLASS exclusion)
 - **Progress Tracking**: Visual indicators and detailed logging
 
-#### **Step 6 Complete Overhaul**
+#### **Step 6 Features**
 - **AI-Powered Analytics**: Individual and class-level performance insights
 - **Professional Word Reports**: Embedded charts and comprehensive analysis
 - **Visual Analytics**: Question performance charts and score distributions
 - **Multi-Sheet Excel Reports**: Detailed data with audit trails
-- **Enhanced PDF Generation**: Modern libraries with comprehensive validation
+- **PDF Generation**: Modern libraries with comprehensive validation
 
 #### **System-Wide Improvements**
 - **Modern Libraries**: Updated to pypdf 6.5.0, removed deprecated dependencies
@@ -92,70 +92,68 @@ Let `<exam_prefix>` be your exam name (e.g., `VTC Test`).
 #### 1. 📄 Scanned Student Scripts
 - **File**: `data/<exam_prefix>.pdf`
 - **Description**: Single PDF containing all scanned handwritten answer sheets
-- **Enhanced**: Supports various PDF formats with robust processing
+- **Format Support**: Supports various PDF formats with robust processing
 
 #### 2. 👥 Student Roster  
 - **File**: `data/<exam_prefix> Name List.xlsx`
 - **Description**: Excel file with student information
 - **Required Columns**: `ID`, `NAME`, `CLASS`
 - **Template**: `sample/VTC Test Name List.xlsx`
-- **Enhanced**: Improved validation and error handling
+- **Validation**: Improved validation and error handling
 
 #### 3. 📝 Answer Sheet Template
 - **File**: `data/<exam_prefix> Answer Sheet.docx`
 - **Description**: Word template for generating individual answer sheets
 - **Placeholders**: `Name:`, `Student ID:`, `Class:`
 - **Template**: `sample/VTC Test Answer Sheet.docx`
-- **Enhanced**: Better formatting and error recovery
+- **Processing**: Robust formatting with error recovery
 
 #### 4. 📋 Marking Scheme
 - **File**: `data/<exam_prefix> Marking Scheme.docx`
 - **Description**: Word document with questions, answers, and rubric
 - **Template**: `sample/VTC Test Marking Scheme.docx`
-- **Enhanced**: Advanced AI parsing with validation
+- **Processing**: Advanced AI parsing with validation
 
 #### 5. 📧 Email Configuration
 - **File**: `smtp.config` (project root)
 - **Description**: SMTP credentials for email distribution
 - **Template**: `smtp-template.config` → rename and configure
-- **Enhanced**: Better error handling and validation
+- **Reliability**: Robust error handling and validation
 
 ## 📚 Workflow: Step-by-Step Guide
 
-Run the enhanced Jupyter notebooks in `notebbooks/` directory in order. Each notebook includes comprehensive error handling, progress tracking, and validation.
-
-> 💡 **Tip**: Both original and enhanced versions are available. Enhanced versions include `_enhanced` suffix and provide additional features, better error handling, and professional output.
+Run the Jupyter notebooks in `notebbooks/` directory in order. Each notebook includes comprehensive error handling, progress tracking, and validation.
 
 ### Step 1: Generate Answer Sheets
-**Notebooks**: `step1_generate_answer_sheet.ipynb` | `step1_generate_answer_sheet_enhanced.ipynb`
+**Notebook**: `step1_generate_answer_sheet.ipynb`
 
 - **Purpose**: Creates personalized answer sheets for printing
-- **Enhanced Features**: 
+- **Features**: 
   - Robust PDF processing with error recovery
   - Progress tracking and validation
-  - Enhanced formatting and layout
+  - Professional formatting and layout
 - **Inputs**: Name list, answer sheet template
 - **Output**: `data/<exam_prefix> Answer Sheets Combined.pdf`
 
 ### Step 2: Extract Marking Scheme  
-**Notebooks**: `step2_generate_marking_scheme_excel.ipynb` | `step2_generate_marking_scheme_excel_enhanced.ipynb`
+**Notebook**: `step2_generate_marking_scheme_excel.ipynb`
 
 - **Purpose**: AI-powered parsing of marking scheme into structured Excel
-- **Enhanced Features**:
+- **Features**:
   - ✅ **Advanced Gemini Integration**: Structured output with Pydantic validation
   - ✅ **Comprehensive Error Handling**: Retry logic and fallback processing
   - ✅ **Multi-Sheet Excel Output**: 4 professional sheets (Marking Scheme, Summary, Question Overview, Validation)
-  - ✅ **Enhanced Validation**: Question completeness and data integrity checks
+  - ✅ **Validation**: Question completeness and data integrity checks
   - ✅ **Backup Protection**: Automatic backup of existing files
   - ✅ **Professional Formatting**: Stakeholder-ready Excel reports
 - **Input**: `data/<exam_prefix> Marking Scheme.docx`
 - **Output**: `data/<exam_prefix> Marking Scheme.xlsx`
 
 ### Step 3: Define Answer Regions
-**Notebooks**: `step3_question_annotations.ipynb` | `step3_question_annotations_enhanced.ipynb`
+**Notebook**: `step3_question_annotations.ipynb`
 
 - **Purpose**: Intelligent detection and refinement of answer regions
-- **Enhanced Features**:
+- **Features**:
   - AI-powered bounding box detection
   - Interactive refinement tools
   - Comprehensive validation
@@ -165,10 +163,10 @@ Run the enhanced Jupyter notebooks in `notebbooks/` directory in order. Each not
   - `marking_form/<exam_prefix>/annotations/annotations.json`: Bounding boxes
 
 ### Step 4: AI-Powered Scoring & Preprocessing
-**Notebooks**: `step4_scoring_preprocessing.ipynb` | `step4_scoring_preprocessing_enhanced.ipynb`
+**Notebook**: `step4_scoring_preprocessing.ipynb`
 
 - **Purpose**: OCR, AI grading, and web interface generation
-- **Enhanced Features**:
+- **Features**:
   - ✅ **Intelligent Caching**: Organized cache structure for efficiency
   - ✅ **Error Recovery**: Robust handling of API failures
   - ✅ **Progress Tracking**: Visual indicators and detailed logging
@@ -180,45 +178,45 @@ Run the enhanced Jupyter notebooks in `notebbooks/` directory in order. Each not
   - Question data and marks in `mark.json` files
 
 ### Step 5: Post-Scoring Validation & Checks
-**Notebooks**: `step5_post_scoring_checks.ipynb` | `step5_post_scoring_checks_enhanced.ipynb`
+**Notebook**: `step5_post_scoring_checks.ipynb`
 
 - **Purpose**: Comprehensive validation before final processing
-- **Enhanced Features**:
-  - ✅ **Enhanced Validation**: Metadata question exclusion
+- **Features**:
+  - ✅ **Validation**: Metadata question exclusion
   - ✅ **Comprehensive Checks**: All scoring completeness verification
   - ✅ **Error Reporting**: Clear identification of issues
   - ✅ **Data Integrity**: ID validation against name lists
 - **Process**: Verifies all questions scored, validates student IDs, cleans temporary files
 
 ### Step 6: Professional Report Generation & Packaging
-**Notebooks**: `step6_scoring_postprocessing.ipynb` | `step6_scoring_postprocessing_enhanced.ipynb`
+**Notebook**: `step6_scoring_postprocessing.ipynb`
 
 - **Purpose**: Generate comprehensive reports and final outputs
-- **🆕 Enhanced Features**:
+- **Features**:
   - ✅ **AI-Powered Analytics**: Individual and class performance insights
   - ✅ **Professional Word Reports**: Embedded charts and comprehensive analysis
   - ✅ **Visual Analytics**: Question performance charts and distributions
   - ✅ **Multi-Sheet Excel Reports**: Detailed data with audit trails
-  - ✅ **Enhanced PDF Generation**: Modern pypdf 6.5.0 with validation
+  - ✅ **PDF Generation**: Modern pypdf 6.5.0 with validation
   - ✅ **Intelligent Caching**: Efficient Gemini API usage
   - ✅ **Error Resilience**: Graceful degradation under all conditions
 
 ### Step 7: Email Distribution
-**Notebooks**: `step7_email_score.ipynb` | `step7_email_score_enhanced.ipynb`
+**Notebook**: `step7_email_score.ipynb`
 
 - **Purpose**: Personalized email distribution with performance insights
-- **Enhanced Features**:
-  - Enhanced email templates with AI insights
+- **Features**:
+  - Professional email templates with AI insights
   - Robust SMTP handling with error recovery
   - Progress tracking and validation
 - **Inputs**: SMTP config, reports, individual PDFs
 - **Output**: Personalized emails with scores and marked scripts
 
-## 📊 Enhanced Output & Reports
+## 📊 Output & Reports
 
 All outputs are generated in `marking_form/<exam_prefix>/` with professional formatting and comprehensive analytics.
 
-### 🆕 Enhanced Excel Reports
+### 🆕 Excel Reports
 
 #### **Comprehensive Multi-Sheet Workbook**
 **File**: `marking_form/<exam_prefix>/marked/scripts/details_score_report.xlsx`
@@ -235,7 +233,7 @@ All outputs are generated in `marking_form/<exam_prefix>/` with professional for
 **File**: `marking_form/<exam_prefix>/marked/scripts/score_report.xlsx`
 - Concise marks-only sheet with ID, Name, Class, Total Marks
 
-### 🆕 Professional Word Documents
+### 🆕 Word Documents
 
 #### **Class Performance Report**
 **File**: `marking_form/<exam_prefix>/marked/scripts/class_overview_report.docx`
@@ -246,7 +244,7 @@ All outputs are generated in `marking_form/<exam_prefix>/` with professional for
 - **📋 Data Tables**: Performance metrics and question analysis
 - **🎯 Actionable Recommendations**: Specific next steps for instruction
 
-### 📄 Enhanced PDF Outputs
+### 📄 PDF Outputs
 
 #### **Individual Student Scripts**
 - **📁 Individual PDFs**: `marking_form/<exam_prefix>/marked/pdfs/<ID>.pdf`
@@ -296,7 +294,7 @@ All outputs are generated in `marking_form/<exam_prefix>/` with professional for
   - `class_overview_report/`: Class analytics cache
 - **⚡ Performance**: Reduces API calls and processing time on reruns
 
-### 🎯 Key Enhancements
+### 🎯 Key Features
 
 - **🤖 AI-Powered Insights**: Individual and class-level performance analysis
 - **📊 Professional Formatting**: Stakeholder-ready reports and documents
@@ -323,7 +321,7 @@ pip install -r requirements.txt
 - pypdf>=6.5.0          # Modern PDF processing  
 - python-docx>=1.2.0    # Word document generation
 - matplotlib>=3.7.0     # Visualization
-- seaborn>=0.13.0       # Enhanced charts
+- seaborn>=0.13.0       # Charts for visualizations
 - opencv-python>=4.8.0  # Image processing
 - ipywidgets>=8.0.0     # Interactive notebooks
 ```
@@ -349,29 +347,27 @@ pip install -r requirements.txt
 1. **Clone Repository**: `git clone <repository-url>`
 2. **Setup Environment**: Install dependencies and configure API keys
 3. **Prepare Input Files**: Copy templates from `sample/` to `data/`
-4. **Run Notebooks**: Execute enhanced versions in sequence
+4. **Run Notebooks**: Execute notebooks in sequence
 5. **Review Outputs**: Check generated reports and analytics
 
-## 🎉 What's New in Enhanced Version
-
-### **🆕 Major Enhancements**
-- **Complete Step 2 Enhanced Version**: Multi-sheet Excel output with comprehensive validation
-- **Complete Step 6 Overhaul**: Professional reports with AI insights
-- **Enhanced Steps 4 & 5**: Better error handling and validation
+### **Key Features**
+- **Multi-Sheet Excel Output**: Step 2 provides comprehensive validation with structured data
+- **Professional Reports**: Step 6 generates professional-grade reports with AI insights
+- **Robust Error Handling**: Better error handling and validation throughout
 - **Modern Library Stack**: Updated to current, supported versions
 - **Intelligent Metadata Handling**: Proper exclusion of student info fields
 - **Professional Output**: Word documents with embedded visualizations
 
-### **🛡️ Reliability Improvements**
+### **Reliability Improvements**
 - **Comprehensive Error Handling**: Graceful degradation under all conditions
-- **Enhanced Validation**: Data integrity checks at every step
+- **Validation**: Data integrity checks at every step
 - **Intelligent Caching**: Organized cache structure for efficiency
 - **Progress Tracking**: Visual indicators and detailed logging
 
-### **📊 Analytics & Insights**
+### **Analytics & Insights**
 - **AI-Powered Analysis**: Individual and class performance insights
 - **Visual Analytics**: Professional charts and data visualizations
 - **Actionable Recommendations**: Specific next steps for instruction
 - **Multi-Format Output**: Excel, Word, PDF for different stakeholders
 
-This enhanced version transforms the grading process into a comprehensive, professional-grade assessment system that provides deep insights into student performance while maintaining the efficiency and accuracy of AI-powered automation.
+This system transforms the grading process into a comprehensive, professional-grade assessment system that provides deep insights into student performance while maintaining the efficiency and accuracy of AI-powered automation.
