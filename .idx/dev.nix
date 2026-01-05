@@ -25,7 +25,13 @@
     pkgs.xorg.libXext
 
     pkgs.libreoffice
-
+    # Fonts for LibreOffice PDF conversion
+    pkgs.dejavu_fonts
+    pkgs.liberation_ttf
+    pkgs.freefont_ttf
+    pkgs.noto-fonts
+    pkgs.noto-fonts-cjk
+    pkgs.noto-fonts-emoji
     # OpenGL stack
     pkgs.mesa
     pkgs.libglvnd
