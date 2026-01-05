@@ -1,4 +1,3 @@
-
 { pkgs, ... }:
 {
   channel = "stable-24.05";
@@ -31,6 +30,7 @@
     pkgs.mesa
     pkgs.libglvnd
     pkgs.mesa.drivers
+    pkgs.libpng
 
     # 🔹 NEW: GLib (provides libgthread-2.0.so.0)
     pkgs.glib
@@ -53,7 +53,7 @@
       "ms-python.black-formatter"
       "ms-python.flake8"
       "ms-python.pylint"
-      "ms-toolsai.jupyter@2025.8.0"
+      "ms-toolsai.jupyter"
     ];
     previews = { enable = true; previews = { }; };
     workspace = {
