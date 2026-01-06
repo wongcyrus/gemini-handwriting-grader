@@ -49,3 +49,5 @@ matplotlib
 requests
 tqdm
 seaborn
+
+google-adk
