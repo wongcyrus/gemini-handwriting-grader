@@ -1,4 +1,7 @@
+
 # Gemini-Handwriting-Grader
+
+![@logo.png](images/logo.png)
 
 An AI-powered, comprehensive handwriting grading system that transforms the traditional, time-consuming grading process into an efficient, automated workflow. This system provides educators with professional-grade tools for fair, consistent, and insightful assessment of handwritten student work.
 
@@ -193,7 +196,7 @@ Run the Jupyter notebooks in `notebbooks/` directory in order. Each notebook inc
 
 - **Purpose**: Generate comprehensive reports and final outputs
 - **Features**:
-  - ✅ **AI-Powered Analytics**: Individual and class performance insights
+  - ✅ **AI-Powered Analytics**: Individual and class-level performance insights
   - ✅ **Professional Word Reports**: Embedded charts and comprehensive analysis
   - ✅ **Visual Analytics**: Question performance charts and distributions
   - ✅ **Multi-Sheet Excel Reports**: Detailed data with audit trails
