@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 
 # Setup path to import grading_utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from grading_utils import init_gemini_client
 
 # Robust logging setup
 logging.basicConfig(
@@ -28,14 +27,6 @@ try:
 
     # Load env vars explicitly as a fallback
     load_dotenv(env_path)
-
-    # We call init_gemini_client primarily to load the .env file and validate the key exists
-    try:
-        _ = init_gemini_client(env_path=env_path)
-    except Exception as e:
-        logger.warning(
-            f"init_gemini_client failed: {e}. Proceeding with manual env check."
-        )
 
     # Ensure GOOGLE_API_KEY is set for ADK's internal client initialization
     genai_key = os.getenv("GOOGLE_GENAI_API_KEY")
@@ -154,13 +145,11 @@ async def extract_marking_scheme_with_ai(markdown_content, max_retries=3):
 """
             content = types.Content(role="user", parts=[types.Part(text=user_prompt)])
 
-            # Run the agent and capture the final text response as fallback
-            final_response_text = None
+            # Run the agent
             async for event in runner.run_async(
                 session_id=session_id, user_id="user", new_message=content
             ):
-                if event.is_final_response() and event.content and event.content.parts:
-                    final_response_text = event.content.parts[0].text
+                pass
 
             # Retrieve structured output from session state (primary method)
             # ADK stores the parsed output in the session state under the output_key (default "output")
@@ -190,7 +179,8 @@ async def extract_marking_scheme_with_ai(markdown_content, max_retries=3):
                         f"✓ General grading guide extracted ({len(general_guide)} characters)"
                     )
                 return questions_data, general_guide
-            raise ValueError("No valid response received from Agent runner")
+            
+            raise ValueError("No valid structured response received from Agent runner")
 
         except Exception as e:
             logger.error(f"AI extraction attempt {attempt + 1} failed: {e}")
