@@ -1,44 +1,14 @@
 import os
-import sys
-import logging
 import asyncio
-from dotenv import load_dotenv
+import time
 from google.genai import types
 from google.adk.agents.llm_agent import Agent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from ..common import setup_agent_environment
 
-# Setup path to import grading_utils
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
-# Robust logging setup
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
-
-# Initialize environment and credentials
-try:
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-    env_path = os.path.join(project_root, ".env")
-
-    # Load env vars explicitly as a fallback
-    load_dotenv(env_path)
-
-    # Ensure GOOGLE_API_KEY is set for ADK's internal client initialization
-    genai_key = os.getenv("GOOGLE_GENAI_API_KEY")
-    api_key = os.getenv("GOOGLE_API_KEY")
-
-    if genai_key and not api_key:
-        os.environ["GOOGLE_API_KEY"] = genai_key
-        logger.info("Mapped GOOGLE_GENAI_API_KEY to GOOGLE_API_KEY for ADK")
-    elif api_key:
-        logger.info("GOOGLE_API_KEY found in environment")
-    else:
-        logger.error("No API key found in environment! ADK execution will likely fail.")
-
-except Exception as e:
-    logger.error(f"Failed to initialize environment: {e}")
+# Setup environment and logging
+logger = setup_agent_environment(__file__)
 
 # Define the OCR agent
 ocr_agent = Agent(
@@ -117,7 +87,6 @@ async def perform_ocr_with_ai(prompt: str, image_path: str = None, image_data: b
         except Exception as e:
             logger.error(f"OCR attempt {attempt + 1} failed: {e}")
             if attempt < max_retries - 1:
-                import time
                 time.sleep(2 ** attempt)
                 continue
             else:

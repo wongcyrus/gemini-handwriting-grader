@@ -260,41 +260,7 @@ def build_student_id_mapping(base_path_questions: str, base_path_annotations: st
 # Gemini Config Helpers
 # =======================
 
-def get_default_safety_settings():
-    """Get default safety settings for Gemini API."""
-    return [
-        types.SafetySetting(
-            category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_ONLY_HIGH"),
-        types.SafetySetting(
-            category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_ONLY_HIGH"),
-        types.SafetySetting(
-            category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_ONLY_HIGH"),
-        types.SafetySetting(category="HARM_CATEGORY_HARASSMENT",
-                            threshold="BLOCK_ONLY_HIGH"),
-    ]
-
-
-def create_gemini_config(temperature=0, top_p=0.5, max_output_tokens=4096, **kwargs):
-    """
-    Create a standard Gemini generation config.
-
-    Args:
-        temperature: Sampling temperature (0-1)
-        top_p: Top-p sampling parameter
-        max_output_tokens: Maximum output tokens
-        **kwargs: Additional config parameters
-
-    Returns:
-        types.GenerateContentConfig
-    """
-    config_params = {
-        "temperature": temperature,
-        "top_p": top_p,
-        "max_output_tokens": max_output_tokens,
-        "safety_settings": get_default_safety_settings(),
-    }
-    config_params.update(kwargs)
-    return types.GenerateContentConfig(**config_params)
+# (Functions removed as they are no longer used)
 
 
 # =======================

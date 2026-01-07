@@ -10,13 +10,10 @@
                 paging: false,
                 autoWidth: true,
                 columnDefs: [
-                    { width: '50%', targets: 0 },
-                    { visible: false, targets: 0 }  // Hide Image column by default
+                    { width: '50%', targets: 0 }
                 ],
-            });
-            
-            // Hide imageControls by default since Image column is hidden
-            $('#imageControls').css('display', 'none');
+            });           
+         
             
             // Function to get column visibility from cookies
             function getColumnVisibility(columnName) {

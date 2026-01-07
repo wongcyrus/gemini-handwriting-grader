@@ -1,39 +1,13 @@
 import os
-import sys
 import json
-import logging
-import asyncio
 from typing import List
-from dotenv import load_dotenv
 from google.genai import types
 from google.adk.agents.llm_agent import Agent
-from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
 from pydantic import BaseModel, Field
+from ..common import setup_agent_environment, run_agent_with_retry
 
-# Setup path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
-# Robust logging setup
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
-
-# Initialize environment
-try:
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-    env_path = os.path.join(project_root, ".env")
-    load_dotenv(env_path)
-    
-    genai_key = os.getenv("GOOGLE_GENAI_API_KEY")
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if genai_key and not api_key:
-        os.environ["GOOGLE_API_KEY"] = genai_key
-    elif not api_key:
-        logger.error("No API key found!")
-except Exception as e:
-    logger.error(f"Failed to initialize environment: {e}")
+# Setup environment and logging
+logger = setup_agent_environment(__file__)
 
 # Pydantic Models
 class ModerationItem(BaseModel):
@@ -65,8 +39,6 @@ moderation_agent = Agent(
 async def moderate_grades_with_ai(question_text, marking_scheme_text, total_marks, entries: List[dict], max_retries=3):
     """Moderate grades using the moderation agent."""
     
-    session_service = InMemorySessionService()
-    
     entries_json = json.dumps(entries, ensure_ascii=False)
     
     prompt = f"""Question: {question_text}
@@ -83,54 +55,31 @@ Return JSON with "items" array of {len(entries)} objects:
 Responses:
 {entries_json}"""
 
-    for attempt in range(max_retries):
-        try:
-            session_id = f"session_{os.urandom(4).hex()}"
-            session = await session_service.create_session(
-                app_name="grading_moderator", session_id=session_id, user_id="user"
-            )
+    try:
+        content = types.Content(role="user", parts=[types.Part(text=prompt)])
+        
+        result = await run_agent_with_retry(
+            agent=moderation_agent,
+            user_content=content,
+            app_name="grading_moderator",
+            output_type=ModerationResponse,
+            max_retries=max_retries,
+            logger=logger
+        )
+        
+        # Validate items length
+        if len(result.items) != len(entries):
+            logger.warning(f"Moderation item count mismatch: got {len(result.items)}, expected {len(entries)}")
+            raise ValueError("Moderation item count mismatch")
+        
+        # Sanitize results
+        results = []
+        for item in result.items:
+            item.moderated_mark = max(0.0, min(float(total_marks), item.moderated_mark))
+            results.append(item.model_dump())
+        return results
             
-            runner = Runner(
-                agent=moderation_agent, app_name="grading_moderator", session_service=session_service
-            )
-            
-            content = types.Content(role="user", parts=[types.Part(text=prompt)])
-            
-            async for event in runner.run_async(session_id=session_id, user_id="user", new_message=content):
-                pass
-                
-            session = await session_service.get_session(
-                app_name="grading_moderator", session_id=session_id, user_id="user"
-            )
-            structured_output = session.state.get("output")
-            
-            if structured_output and isinstance(structured_output, dict):
-                structured_output = ModerationResponse(**structured_output)
-                
-            if structured_output and isinstance(structured_output, ModerationResponse):
-                # Validate items length
-                if len(structured_output.items) != len(entries):
-                    logger.warning(f"Moderation item count mismatch: got {len(structured_output.items)}, expected {len(entries)}")
-                    # If mismatch, fallback or handle error? For now return what we have or error
-                    # Better to error and retry if count is wrong
-                    raise ValueError("Moderation item count mismatch")
-                
-                # Sanitize results
-                results = []
-                for item in structured_output.items:
-                    item.moderated_mark = max(0.0, min(float(total_marks), item.moderated_mark))
-                    results.append(item.model_dump())
-                return results
-                
-            logger.warning("Structured moderation output not found or invalid.")
-            
-        except Exception as e:
-            logger.error(f"Moderation attempt {attempt + 1} failed: {e}")
-            if attempt < max_retries - 1:
-                import time
-                time.sleep(2 ** attempt)
-                continue
-                
-    # Fallback: return original marks
-    logger.error("Moderation failed, returning original marks")
-    return [{"moderated_mark": float(e["mark"]), "flag": False, "note": "moderation_error"} for e in entries]
+    except Exception as e:
+        logger.error(f"Moderation failed: {e}")
+        # Fallback: return original marks
+        return [{"moderated_mark": float(e["mark"]), "flag": False, "note": "moderation_error"} for e in entries]

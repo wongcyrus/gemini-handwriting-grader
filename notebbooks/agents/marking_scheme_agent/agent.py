@@ -1,48 +1,12 @@
 import os
-import sys
-import json
-import logging
-import asyncio
 from typing import List
-from dotenv import load_dotenv
 from google.genai import types
 from google.adk.agents.llm_agent import Agent
-from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
 from pydantic import BaseModel, Field
+from ..common import setup_agent_environment, run_agent_with_retry
 
-# Setup path to import grading_utils
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
-# Robust logging setup
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
-
-# Initialize environment and credentials
-try:
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-    env_path = os.path.join(project_root, ".env")
-
-    # Load env vars explicitly as a fallback
-    load_dotenv(env_path)
-
-    # Ensure GOOGLE_API_KEY is set for ADK's internal client initialization
-    genai_key = os.getenv("GOOGLE_GENAI_API_KEY")
-    api_key = os.getenv("GOOGLE_API_KEY")
-
-    if genai_key and not api_key:
-        os.environ["GOOGLE_API_KEY"] = genai_key
-        logger.info("Mapped GOOGLE_GENAI_API_KEY to GOOGLE_API_KEY for ADK")
-    elif api_key:
-        logger.info("GOOGLE_API_KEY found in environment")
-    else:
-        logger.error("No API key found in environment! ADK execution will likely fail.")
-
-except Exception as e:
-    logger.error(f"Failed to initialize environment: {e}")
-
+# Setup environment and logging
+logger = setup_agent_environment(__file__)
 
 # Robust Pydantic models with comprehensive validation
 class Question(BaseModel):
@@ -116,76 +80,35 @@ marking_scheme_agent = Agent(
 async def extract_marking_scheme_with_ai(markdown_content, max_retries=3):
     """Extract marking scheme using AI with error handling via ADK Runner (Async)"""
 
-    # Initialize session service once
-    session_service = InMemorySessionService()
-
-    for attempt in range(max_retries):
-        try:
-            logger.info(f"AI extraction attempt {attempt + 1}/{max_retries}")
-
-            # Create a unique session for this attempt
-            session_id = f"session_{os.urandom(4).hex()}"
-            session = await session_service.create_session(
-                app_name="marking_scheme_extractor",
-                session_id=session_id,
-                user_id="user",
-            )
-
-            # Initialize Runner
-            runner = Runner(
-                agent=marking_scheme_agent,
-                app_name="marking_scheme_extractor",
-                session_service=session_service,
-            )
-
-            # Create user prompt combining the document content
-            user_prompt = f"""**Document Content:**
+    try:
+        # Create user prompt combining the document content
+        user_prompt = f"""**Document Content:**
 
 {markdown_content}
 """
-            content = types.Content(role="user", parts=[types.Part(text=user_prompt)])
+        content = types.Content(role="user", parts=[types.Part(text=user_prompt)])
 
-            # Run the agent
-            async for event in runner.run_async(
-                session_id=session_id, user_id="user", new_message=content
-            ):
-                pass
+        result = await run_agent_with_retry(
+            agent=marking_scheme_agent,
+            user_content=content,
+            app_name="marking_scheme_extractor",
+            output_type=MarkingSchemeResponse,
+            max_retries=max_retries,
+            logger=logger
+        )
 
-            # Retrieve structured output from session state (primary method)
-            # ADK stores the parsed output in the session state under the output_key (default "output")
-            session = await session_service.get_session(
-                app_name="marking_scheme_extractor",
-                session_id=session_id,
-                user_id="user",
+        general_guide = result.general_grading_guide
+        questions_data = [q.model_dump() for q in result.questions]
+
+        logger.info(
+            f"✓ Successfully extracted {len(questions_data)} questions via ADK output state!"
+        )
+        if general_guide:
+            logger.info(
+                f"✓ General grading guide extracted ({len(general_guide)} characters)"
             )
-            structured_output = session.state.get("output")
+        return questions_data, general_guide
 
-            if structured_output and isinstance(structured_output, dict):
-                # If stored as dict, convert to model
-                structured_output = MarkingSchemeResponse(**structured_output)
-
-            if structured_output and isinstance(
-                structured_output, MarkingSchemeResponse
-            ):
-                result = structured_output
-                general_guide = result.general_grading_guide
-                questions_data = [q.model_dump() for q in result.questions]
-
-                logger.info(
-                    f"✓ Successfully extracted {len(questions_data)} questions via ADK output state!"
-                )
-                if general_guide:
-                    logger.info(
-                        f"✓ General grading guide extracted ({len(general_guide)} characters)"
-                    )
-                return questions_data, general_guide
-            
-            raise ValueError("No valid structured response received from Agent runner")
-
-        except Exception as e:
-            logger.error(f"AI extraction attempt {attempt + 1} failed: {e}")
-            if attempt < max_retries - 1:
-                logger.info("Retrying...")
-                continue
-            else:
-                raise
+    except Exception as e:
+        logger.error(f"AI extraction failed: {e}")
+        raise

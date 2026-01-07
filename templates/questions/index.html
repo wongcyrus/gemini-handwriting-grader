@@ -35,8 +35,7 @@
                 paging: false,
                 autoWidth: true,
                 columnDefs: [
-                    { width: '50%', targets: 1 },
-                    { visible: false, targets: 1 },  // Hide Image column by default
+                    { width: '50%', targets: 1 },                   
                     { 
                         targets: 3,
                         render: function(data, type, row) {
@@ -48,9 +47,6 @@
                     }
                 ],
             } );
-            
-            // Hide imageControls by default since Image column is hidden
-            $('#imageControls').css('display', 'none');
             
             // Function to get column visibility from cookies
             function getColumnVisibility(columnName) {
