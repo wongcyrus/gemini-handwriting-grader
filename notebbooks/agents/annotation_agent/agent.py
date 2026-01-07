@@ -1,9 +1,11 @@
 import os
 from typing import List
+import hashlib
 from google.genai import types
 from google.adk.agents.llm_agent import Agent
 from pydantic import BaseModel, Field
 from ..common import setup_agent_environment, run_agent_with_retry
+import grading_utils
 
 # Setup environment and logging
 logger = setup_agent_environment(__file__)
@@ -69,12 +71,30 @@ async def extract_annotations_with_ai(image_path, max_retries=3):
     """Extract annotations using AI with error handling via ADK Runner (Async)"""
 
     # Read image data
+    image_data = None
     try:
         with open(image_path, "rb") as f:
             image_data = f.read()
     except Exception as e:
         logger.error(f"Failed to read image file {image_path}: {e}")
         return BoundingBoxResponse(boxes=[])
+
+    # --- Caching Logic ---
+    cache_key = None
+    try:
+        image_hash = hashlib.sha256(image_data).hexdigest()
+        cache_key = grading_utils.get_cache_key(
+            "annotation_extraction",
+            model="gemini-3-flash-preview",
+            image_hash=image_hash,
+        )
+        cached = grading_utils.get_from_cache(cache_key)
+        if cached is not None:
+            logger.info("Annotation extraction cache hit")
+            return BoundingBoxResponse(**cached)
+    except Exception as e:
+        logger.warning(f"Cache lookup failed: {e}")
+    # ---------------------
 
     try:
         # Create user prompt with image
@@ -98,6 +118,11 @@ async def extract_annotations_with_ai(image_path, max_retries=3):
         logger.info(
             f"✓ Successfully extracted {len(result.boxes)} boxes via ADK output state!"
         )
+        
+        # Save to cache
+        if cache_key:
+            grading_utils.save_to_cache(cache_key, result.model_dump())
+
         return result
 
     except Exception as e:

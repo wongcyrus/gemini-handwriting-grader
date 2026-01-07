@@ -6,6 +6,7 @@ Consolidates repeated code across all notebook steps.
 import os
 import json
 import hashlib
+from typing import Tuple, Optional, Any, Dict, List
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
@@ -110,7 +111,7 @@ def init_gemini_client(env_path: str = "../.env"):
 # Caching Functions
 # =======================
 
-def get_cache_key(cache_type: str, **params) -> str:
+def get_cache_key(cache_type: str, **params) -> Tuple[str, str]:
     """
     Generate a cache key from parameters.
 
@@ -119,46 +120,64 @@ def get_cache_key(cache_type: str, **params) -> str:
         **params: Additional parameters for cache key
 
     Returns:
-        str: SHA256 hash of the parameters
+        Tuple[str, str]: (cache_type, SHA256 hash)
     """
-    key_data = {"type": cache_type, **params}
-    key_str = json.dumps(key_data, sort_keys=True)
-    return hashlib.sha256(key_str.encode()).hexdigest()
+    try:
+        # Include versioning if not present
+        if "version" not in params:
+            params["version"] = "2.0"
+            
+        key_data = {"type": cache_type, **params}
+        key_str = json.dumps(key_data, sort_keys=True, ensure_ascii=False)
+        hash_key = hashlib.sha256(key_str.encode('utf-8')).hexdigest()
+        return (cache_type, hash_key)
+    except Exception as e:
+        print(f"Warning: Error generating cache key: {e}")
+        # Fallback for non-serializable params
+        fallback_str = f"{cache_type}_{str(params)}"
+        hash_key = hashlib.sha256(fallback_str.encode()).hexdigest()
+        return (cache_type, hash_key)
 
 
-def get_from_cache(cache_key: str, cache_dir: str = "../cache"):
+def get_from_cache(cache_key: Tuple[str, str], cache_dir: str = "../cache") -> Optional[Any]:
     """
     Retrieve cached result.
 
     Args:
-        cache_key: Cache key hash
+        cache_key: Tuple of (cache_type, hash_key)
         cache_dir: Cache directory path
 
     Returns:
-        dict or None: Cached data if found
+        Optional[Any]: Cached data if found, None otherwise
     """
-    cache_file = os.path.join(cache_dir, f"{cache_key}.json")
-    if os.path.exists(cache_file):
-        try:
-            with open(cache_file, "r") as f:
+    try:
+        cache_type, hash_key = cache_key
+        cache_subdir = os.path.join(cache_dir, cache_type)
+        cache_file = os.path.join(cache_subdir, f"{hash_key}.json")
+        
+        if os.path.exists(cache_file):
+            with open(cache_file, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
-            return None
+    except Exception:
+        return None
     return None
 
 
-def save_to_cache(cache_key: str, data: dict, cache_dir: str = "../cache"):
+def save_to_cache(cache_key: Tuple[str, str], data: Any, cache_dir: str = "../cache"):
     """
     Save result to cache with formatted JSON.
 
     Args:
-        cache_key: Cache key hash
+        cache_key: Tuple of (cache_type, hash_key)
         data: Data to cache
         cache_dir: Cache directory path
     """
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_file = os.path.join(cache_dir, f"{cache_key}.json")
     try:
+        cache_type, hash_key = cache_key
+        cache_subdir = os.path.join(cache_dir, cache_type)
+        os.makedirs(cache_subdir, exist_ok=True)
+        
+        cache_file = os.path.join(cache_subdir, f"{hash_key}.json")
         with open(cache_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
     except Exception as e:
@@ -257,13 +276,6 @@ def build_student_id_mapping(base_path_questions: str, base_path_annotations: st
 
 
 # =======================
-# Gemini Config Helpers
-# =======================
-
-# (Functions removed as they are no longer used)
-
-
-# =======================
 # Validation Functions
 # =======================
 
@@ -350,7 +362,7 @@ def print_validation_summary(title, is_valid, errors):
     """
     print(f"\n{'='*60}")
     print(f"📋 {title}")
-    print(f"{'='*60}")
+    print(f"{ '='*60}")
     
     if is_valid:
         print("✅ VALIDATION PASSED")

@@ -3,6 +3,7 @@ from google.genai import types
 from google.adk.agents.llm_agent import Agent
 from pydantic import BaseModel, Field
 from ..common import setup_agent_environment, run_agent_with_retry
+import grading_utils
 
 # Setup environment and logging
 logger = setup_agent_environment(__file__)
@@ -32,6 +33,25 @@ grading_agent = Agent(
 
 async def grade_answer_with_ai(question_text, submitted_answer, marking_scheme_text, total_marks, max_retries=3):
     """Grade a student's answer using the grading agent."""
+    
+    # --- Caching Logic ---
+    cache_key = None
+    try:
+        cache_key = grading_utils.get_cache_key(
+            "grade_answer",
+            model="gemini-3-flash-preview",
+            question=question_text,
+            answer=submitted_answer,
+            scheme=marking_scheme_text,
+            marks=total_marks
+        )
+        cached = grading_utils.get_from_cache(cache_key)
+        if cached:
+            logger.info(f"Grading cache hit")
+            return GradingResult(**cached)
+    except Exception as e:
+        logger.warning(f"Cache lookup failed: {e}")
+    # ---------------------
     
     prompt = f"""<QUESTION>
 {question_text}
@@ -69,6 +89,11 @@ Provide:
         # Sanitize results
         result.similarity_score = max(0.0, min(1.0, result.similarity_score))
         result.mark = max(0.0, min(float(total_marks), result.mark))
+        
+        # Save to cache
+        if cache_key:
+            grading_utils.save_to_cache(cache_key, result.model_dump())
+            
         return result
             
     except Exception as e:

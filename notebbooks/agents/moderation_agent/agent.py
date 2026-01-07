@@ -5,6 +5,7 @@ from google.genai import types
 from google.adk.agents.llm_agent import Agent
 from pydantic import BaseModel, Field
 from ..common import setup_agent_environment, run_agent_with_retry
+import grading_utils
 
 # Setup environment and logging
 logger = setup_agent_environment(__file__)
@@ -39,6 +40,25 @@ moderation_agent = Agent(
 async def moderate_grades_with_ai(question_text, marking_scheme_text, total_marks, entries: List[dict], max_retries=3):
     """Moderate grades using the moderation agent."""
     
+    # --- Caching Logic ---
+    cache_key = None
+    try:
+        cache_key = grading_utils.get_cache_key(
+            "grade_moderator",
+            model="gemini-3-pro-preview",
+            question=question_text,
+            scheme=marking_scheme_text,
+            total_marks=total_marks,
+            entries=entries
+        )
+        cached = grading_utils.get_from_cache(cache_key)
+        if cached is not None:
+            logger.info("Moderation cache hit")
+            return cached
+    except Exception as e:
+        logger.warning(f"Cache lookup failed: {e}")
+    # ---------------------
+
     entries_json = json.dumps(entries, ensure_ascii=False)
     
     prompt = f"""Question: {question_text}
@@ -77,9 +97,14 @@ Responses:
         for item in result.items:
             item.moderated_mark = max(0.0, min(float(total_marks), item.moderated_mark))
             results.append(item.model_dump())
+        
+        # Save to cache
+        if cache_key:
+            grading_utils.save_to_cache(cache_key, results)
+            
         return results
             
     except Exception as e:
         logger.error(f"Moderation failed: {e}")
         # Fallback: return original marks
-        return [{"moderated_mark": float(e["mark"]), "flag": False, "note": "moderation_error"} for e in entries]
+        return [{"moderated_mark": float(e.get("mark", 0)), "flag": False, "note": "moderation_error"} for e in entries]

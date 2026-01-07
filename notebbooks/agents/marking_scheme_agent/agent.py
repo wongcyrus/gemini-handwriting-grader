@@ -4,9 +4,12 @@ from google.genai import types
 from google.adk.agents.llm_agent import Agent
 from pydantic import BaseModel, Field
 from ..common import setup_agent_environment, run_agent_with_retry
+import grading_utils
+import hashlib
 
 # Setup environment and logging
 logger = setup_agent_environment(__file__)
+
 
 # Robust Pydantic models with comprehensive validation
 class Question(BaseModel):
@@ -36,7 +39,7 @@ class MarkingSchemeResponse(BaseModel):
 
 # Define the specialized agent
 marking_scheme_agent = Agent(
-    model="gemini-3-flash-preview",
+    model="gemini-3-pro-preview",
     name="marking_scheme_extractor",
     description="Specialized agent for extracting structured marking schemes from documents.",
     instruction="""Please analyze this marking scheme document and extract structured, well-formatted data.
@@ -80,6 +83,24 @@ marking_scheme_agent = Agent(
 async def extract_marking_scheme_with_ai(markdown_content, max_retries=3):
     """Extract marking scheme using AI with error handling via ADK Runner (Async)"""
 
+    # --- Caching Logic ---
+    cache_key = None
+    try:
+        content_hash = hashlib.sha256(markdown_content.encode("utf-8")).hexdigest()
+        cache_key = grading_utils.get_cache_key(
+            "marking_scheme_extraction",
+            model="gemini-3-flash-preview",
+            content_hash=content_hash,
+        )
+        cached = grading_utils.get_from_cache(cache_key)
+        if cached is not None:
+            logger.info("Marking scheme cache hit")
+            # Cached data is a list of dicts for questions_data and a string for general_guide
+            return cached[0], cached[1]
+    except Exception as e:
+        logger.warning(f"Cache lookup failed: {e}")
+    # ---------------------
+
     try:
         # Create user prompt combining the document content
         user_prompt = f"""**Document Content:**
@@ -94,7 +115,7 @@ async def extract_marking_scheme_with_ai(markdown_content, max_retries=3):
             app_name="marking_scheme_extractor",
             output_type=MarkingSchemeResponse,
             max_retries=max_retries,
-            logger=logger
+            logger=logger,
         )
 
         general_guide = result.general_grading_guide
@@ -107,6 +128,11 @@ async def extract_marking_scheme_with_ai(markdown_content, max_retries=3):
             logger.info(
                 f"✓ General grading guide extracted ({len(general_guide)} characters)"
             )
+
+        # Save to cache
+        if cache_key:
+            grading_utils.save_to_cache(cache_key, (questions_data, general_guide))
+
         return questions_data, general_guide
 
     except Exception as e:

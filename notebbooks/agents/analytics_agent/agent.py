@@ -1,9 +1,11 @@
 import os
 import json
+import hashlib
 from google.genai import types
 from google.adk.agents.llm_agent import Agent
 from pydantic import BaseModel, Field
 from ..common import setup_agent_environment, run_agent_with_retry
+import grading_utils
 
 # Setup environment and logging
 logger = setup_agent_environment(__file__)
@@ -44,6 +46,26 @@ async def generate_student_report_with_ai(
     max_retries=3,
 ):
     """Generate student performance report using AI"""
+    
+    # --- Caching Logic ---
+    cache_key = None
+    try:
+        # Use hash of the question details as payload hash
+        payload_hash = hashlib.sha256(question_details.encode("utf-8")).hexdigest()
+        cache_key = grading_utils.get_cache_key(
+            "performance_report",
+            model="gemini-3-flash-preview",
+            student_id=str(student_id),
+            payload_hash=payload_hash,
+        )
+        cached = grading_utils.get_from_cache(cache_key)
+        if cached is not None and isinstance(cached, dict) and "report" in cached:
+            logger.info(f"Performance report cache hit for {student_id}")
+            return cached["report"]
+    except Exception as e:
+        logger.warning(f"Cache lookup failed: {e}")
+    # ---------------------
+
     try:
         user_prompt = f"""Student: {student_id} - {student_name} (Class: {student_class})
 Total score: {total_score}
@@ -61,6 +83,11 @@ Use the question details, marking schemes, awarded marks, and answers below:
             max_retries=max_retries,
             logger=logger
         )
+        
+        # Save to cache
+        if cache_key:
+            grading_utils.save_to_cache(cache_key, {"report": result.report_text})
+
         return result.report_text
 
     except Exception as e:
@@ -104,6 +131,26 @@ async def generate_class_overview_with_ai(
     # Format sample reports
     report_blob = "\n\n---\n\n".join(sample_reports)
 
+    # --- Caching Logic ---
+    cache_key = None
+    try:
+        # Cache-aware Gemini call
+        payload_hash = hashlib.sha256(
+            (json.dumps(summary_payload, sort_keys=True) + report_blob).encode("utf-8")
+        ).hexdigest()
+        cache_key = grading_utils.get_cache_key(
+            "class_overview_report",
+            model="gemini-3-flash-preview",
+            payload_hash=payload_hash,
+        )
+        cached = grading_utils.get_from_cache(cache_key)
+        if cached is not None and isinstance(cached, dict) and "report" in cached:
+            logger.info("Class overview cache hit")
+            return cached["report"]
+    except Exception as e:
+        logger.warning(f"Cache lookup failed: {e}")
+    # ---------------------
+
     try:
         user_prompt = f"""Key metrics (JSON): {json.dumps(summary_payload)}
 Number of sampled individual reports: {len(sample_reports)}
@@ -120,6 +167,11 @@ Individual reports (separated by ---):
             max_retries=max_retries,
             logger=logger
         )
+
+        # Save to cache
+        if cache_key:
+            grading_utils.save_to_cache(cache_key, {"report": result.report_text})
+
         return result.report_text
 
     except Exception as e:

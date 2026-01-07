@@ -1,11 +1,13 @@
 import os
 import asyncio
 import time
+import hashlib
 from google.genai import types
 from google.adk.agents.llm_agent import Agent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from ..common import setup_agent_environment
+import grading_utils
 
 # Setup environment and logging
 logger = setup_agent_environment(__file__)
@@ -25,7 +27,7 @@ ocr_agent = Agent(
 
 async def perform_ocr_with_ai(prompt: str, image_path: str = None, image_data: bytes = None, max_retries: int = 3) -> str:
     """
-    Perform OCR using the OCR agent.
+    Perform OCR using the OCR agent with caching.
     Accepts either image_path or image_data.
     """
     
@@ -44,6 +46,25 @@ async def perform_ocr_with_ai(prompt: str, image_path: str = None, image_data: b
     if not image_data:
         logger.error("No image data provided for OCR")
         return ""
+
+    # --- Caching Logic ---
+    cache_key = None
+    try:
+        image_hash = hashlib.sha256(image_data).hexdigest()
+        cache_key = grading_utils.get_cache_key(
+            "ocr", 
+            model="gemini-3-flash-preview", 
+            prompt=prompt, 
+            image_hash=image_hash
+        )
+        cached_result = grading_utils.get_from_cache(cache_key)
+        if cached_result is not None:
+             if isinstance(cached_result, dict) and "result" in cached_result:
+                 logger.info(f"OCR cache hit for hash {image_hash[:8]}")
+                 return cached_result["result"]
+    except Exception as e:
+        logger.warning(f"Cache lookup failed: {e}")
+    # ---------------------
 
     for attempt in range(max_retries):
         try:
@@ -80,7 +101,11 @@ async def perform_ocr_with_ai(prompt: str, image_path: str = None, image_data: b
                     final_text = event.content.parts[0].text
 
             if final_text:
-                return final_text.strip()
+                result_text = final_text.strip()
+                # Save to cache
+                if cache_key:
+                    grading_utils.save_to_cache(cache_key, {"result": result_text})
+                return result_text
             
             logger.warning(f"Empty OCR response on attempt {attempt + 1}")
 
