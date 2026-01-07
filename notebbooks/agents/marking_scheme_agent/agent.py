@@ -25,7 +25,8 @@ def citation_retrieval_after_model_callback(
             for chunk in llm_response.grounding_metadata.grounding_chunks:
                 if chunk.web:
                     found_citations = True
-                    citation_text += f"  - {chunk.web.title}: {chunk.web.uri}\n"
+                    # Use Markdown link format for better readability
+                    citation_text += f"  - [{chunk.web.title}]({chunk.web.uri})\n"
             
             if found_citations:
                 # Append to the first text part if it exists
@@ -160,7 +161,7 @@ marking_scheme_verifier_formatter = Agent(
     instruction="""Format the 'verification_draft' provided by the previous agent into a structured JSON response according to the schema.
 Ensure all questions are included in the 'items' list.
 Provide an overall 'general_feedback' summary.
-**IMPORTANT**: If the source text contains citations (starting with "Citations:"), include them in the 'feedback' field for the relevant question or in the 'general_feedback'.""",
+**IMPORTANT**: If the source text contains citations in the format '[Title](URL)', you MUST preserve this exact format in the 'feedback' field or 'general_feedback'. Do not simplify them to plain text.""",
     output_schema=VerificationResponse,
     output_key="output",
     generate_content_config=types.GenerateContentConfig(

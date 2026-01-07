@@ -30,6 +30,48 @@ This project implements an AI-powered handwriting grading system using Google's 
 
 ## Step Enhancements
 
+### STEP2 ENHANCEMENT SUMMARY
+
+# Step 2 Notebook Enhancement Summary
+
+## Overview
+Enhanced `step2_generate_marking_scheme_excel.ipynb` with advanced multi-agent verification, Google Search grounding, and multi-format reporting.
+
+## Key Features
+
+### 1. Multi-Agent Verification System ✅
+- **Sequential Agent Workflow**: Implements Google ADK's `SequentialAgent` pattern.
+- **Search Agent**: `marking_scheme_verifier_searcher` uses Google Search tools to fact-check marking schemes against real-world data.
+- **Formatting Agent**: `marking_scheme_verifier_formatter` converts raw search results into structured JSON validation reports.
+- **Citation Tracking**: Automatically captures and preserves source citations (URLs, titles) for verification claims.
+
+### 2. Google Search Grounding ✅
+- **Fact-Checking**: Verifies question accuracy and answer validity using live Google Search data.
+- **Source Attribution**: Provides direct citations to authoritative sources (e.g., VTC, EDB websites).
+- **Hallucination Prevention**: Uses grounding to ensure model outputs are based on retrieved information.
+
+### 3. Comprehensive Reporting ✅
+- **Multi-Sheet Excel**: Adds a "Content Verification" sheet to the standard Excel output.
+- **Word Verification Report**: Generates a dedicated `_verification.docx` file with:
+  - Executive summary of marking scheme quality.
+  - Detailed per-question feedback.
+  - Correctness status (✅ Correct / ❌ Incorrect).
+  - Improvement suggestions.
+  - Full citation list.
+
+### 4. Robust Data Handling ✅
+- **JSON Validation**: Enforces strict JSON schemas for agent outputs using Pydantic models.
+- **Error Recovery**: Graceful degradation if verification services are unavailable.
+- **Feedback Integration**: verification feedback is integrated into both summary and detailed views.
+
+## Technical Implementation
+
+- **Agent Framework**: Built on Google ADK `SequentialAgent` and `GoogleSearchTool`.
+- **Callback System**: Custom `citation_retrieval_after_model_callback` to extract and format grounding metadata.
+- **Output Generation**: Uses `python-docx` for professional Word reports and `pandas` for Excel integration.
+
+---
+
 ### STEP5 ENHANCEMENT SUMMARY
 
 # Step 5 Notebook Enhancement Summary

@@ -62,6 +62,8 @@ This system automates the entire grading process using Jupyter notebooks that le
 #### **Step 2 Features**
 - **Multi-Sheet Excel Output**: Professional 4-sheet workbook with comprehensive analysis
 - **Advanced AI Processing**: Gemini integration with structured validation
+- **Multi-Agent Verification**: Sequential agents for grounding and formatting
+- **Google Search Grounding**: Live fact-checking of marking schemes against real-world data
 - **Comprehensive Error Handling**: Retry logic, fallback processing, and graceful degradation
 - **Professional Formatting**: Stakeholder-ready reports with detailed validation
 
