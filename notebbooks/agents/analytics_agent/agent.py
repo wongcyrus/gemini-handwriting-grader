@@ -143,7 +143,8 @@ def generate_infographic_tool(report_text: str) -> str:
             config=types.GenerateContentConfig(
                 response_modalities=["IMAGE"],
                 image_config=types.ImageConfig(
-                    output_mime_type="image/png"
+                    output_mime_type="image/png",
+                    aspect_ratio="16:9"
                 )
             )
         )
@@ -244,8 +245,15 @@ async def generate_class_overview_with_ai(
         )
         cached = grading_utils.get_from_cache(cache_key)
         if cached is not None and isinstance(cached, dict) and "report" in cached:
-            logger.info("Class overview cache hit")
-            return cached
+            # Validate image file existence if present
+            image_path = cached.get("infograph_image_path")
+            if image_path and not str(image_path).startswith("IMAGE_GENERATION_") and not os.path.exists(image_path):
+                logger.warning(f"Cache hit but image file missing: {image_path}. Invalidating cache.")
+                cached = None
+
+            if cached:
+                logger.info("Class overview cache hit")
+                return cached
     except Exception as e:
         logger.warning(f"Cache lookup failed: {e}")
     # ---------------------
@@ -279,3 +287,188 @@ Individual reports (separated by ---):
     except Exception as e:
         logger.error(f"Class overview generation failed: {e}")
         return ClassOverviewResponse(report_text="AI-generated class overview temporarily unavailable due to API issues.")
+
+
+# --- Question Analysis Agent ---
+
+class QuestionAnalysisResponse(BaseModel):
+    """Structured response for detailed question analysis"""
+    report_text: str = Field(description="The generated analysis of question performance, misconceptions, and patterns.")
+    infograph_image_path: Optional[str] = Field(default=None, description="File path to the generated infographic image.")
+
+
+def generate_question_infographic_tool(analysis_text: str) -> str:
+    """
+    Generates a 'Deep Dive' infographic for a specific question analysis using NanoBanana (Gemini).
+    Returns the file path of the saved image.
+    """
+    try:
+        logger.info("Generating question analysis infographic with NanoBanana tool...")
+        
+        # Initialize client
+        api_key = os.getenv("GOOGLE_GENAI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        client = genai.Client(vertexai=True, api_key=api_key)
+        
+        # Define cache directory
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        cache_dir = os.path.join(base_dir, "cache", "class_overview_report") # Reuse same cache dir for simplicity
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        prompt = f"""Create a professional, high-quality educational infographic titled 'Question Insight'.
+        
+        Content to visualize (Analysis of ONE specific question):
+        {analysis_text}
+        
+        Visual instructions:
+        - Header: Question Title/Topic.
+        - Split layout: 'Common Misconceptions' vs 'Key Success Factors'.
+        - Use simple icons to represent the core concept of the question.
+        - Style: Clean, focused, single-topic educational card."""
+        
+        response = client.models.generate_content(
+            model='gemini-3-pro-image-preview',
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                response_modalities=["IMAGE"],
+                image_config=types.ImageConfig(
+                    output_mime_type="image/png",
+                    aspect_ratio="16:9"
+                )
+            )
+        )
+        
+        for part in response.candidates[0].content.parts:
+            if part.inline_data:
+                try:
+                    filename = f"infograph_question_{uuid.uuid4().hex}.png"
+                    image_path = os.path.join(cache_dir, filename)
+                    
+                    image = Image.open(BytesIO(part.inline_data.data))
+                    image.save(image_path)
+                    
+                    logger.info(f"Tool saved question infographic to {image_path}")
+                    return os.path.abspath(image_path)
+                except Exception as img_err:
+                    logger.error(f"Failed to save question image data: {img_err}")
+                    raise img_err
+                
+        logger.warning("No image data found in NanoBanana response")
+        return "IMAGE_GENERATION_FAILED"
+        
+    except Exception as e:
+        logger.error(f"Question infographic tool failed: {e}")
+        return f"IMAGE_GENERATION_ERROR: {str(e)}"
+
+
+question_insight_text_generator = Agent(
+    model="gemini-3-flash-preview",
+    name="question_insight_text_generator",
+    description="Agent for analyzing a single question's performance data.",
+    instruction="""You are an expert educational analyst.
+    
+Analyze the provided JSON data for a **SINGLE** question. The data includes stats, the marking scheme, and sample student answers (high vs low scoring).
+
+**OUTPUT REQUIREMENTS:**
+Write a concise analysis (approx 150 words) specifically for this question:
+1.  **The Hurdle:** What specific concept or keyword did low-scoring students miss? Use the sample "bottom_answers" as evidence.
+2.  **The Key:** What did high-scoring students consistently demonstrate? Use "top_answers" as evidence.
+3.  **Actionable Tip:** One specific teaching strategy to fix this specific misconception.
+
+**Style:** Focused, specific to this question's content. Do not generalize.""",
+    output_key="question_analysis_draft",
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0.3,
+        max_output_tokens=1024,
+    ),
+)
+
+
+question_insight_infograph_generator = Agent(
+    model="gemini-3-flash-preview",
+    name="question_insight_infograph_generator",
+    description="Orchestrator for creating question analysis infographic.",
+    instruction="""You are an expert coordinator.
+
+1.  **Review** the provided question analysis text.
+2.  **Call the 'generate_question_infographic_tool'** with this text to create a visualization.
+3.  **Return** a JSON response matching the schema:
+    -   'report_text': The exact analysis text provided.
+    -   'infograph_image_path': The file path returned by the tool.""",
+    tools=[generate_question_infographic_tool],
+    output_schema=QuestionAnalysisResponse,
+    output_key="output",
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0.1,
+        max_output_tokens=1024,
+        response_mime_type="application/json",
+    ),
+)
+
+
+question_analysis_agent = SequentialAgent(
+    name="question_analysis_agent",
+    description="Sequential agent for generating question insights and infographic.",
+    sub_agents=[question_insight_text_generator, question_insight_infograph_generator]
+)
+
+
+async def generate_question_insights_with_ai(
+    question_data_payload, max_retries=3
+):
+    """Generate question-level insights and infographic using AI"""
+    
+    # --- Caching Logic ---
+    cache_key = None
+    try:
+        # Hash the input payload
+        payload_str = json.dumps(question_data_payload, sort_keys=True)
+        payload_hash = hashlib.sha256(payload_str.encode("utf-8")).hexdigest()
+        cache_key = grading_utils.get_cache_key(
+            "class_overview_report", # Reusing report cache category
+            sub_type="question_insights",
+            model="gemini-3-flash-preview",
+            payload_hash=payload_hash,
+        )
+        cached = grading_utils.get_from_cache(cache_key)
+        if cached is not None and isinstance(cached, dict) and "report_text" in cached:
+            # Validate image file existence if present
+            image_path = cached.get("infograph_image_path")
+            if image_path and not str(image_path).startswith("IMAGE_GENERATION_") and not os.path.exists(image_path):
+                logger.warning(f"Cache hit but image file missing: {image_path}. Invalidating cache.")
+                cached = None
+
+            if cached:
+                logger.info("Question insights cache hit")
+                return cached
+    except Exception as e:
+        logger.warning(f"Cache lookup failed: {e}")
+    # ---------------------
+
+    try:
+        # Provide the raw data to the agent
+        user_prompt = f"""**Question Performance Data (JSON):**
+{json.dumps(question_data_payload, indent=2)}
+"""
+        content = types.Content(role="user", parts=[types.Part(text=user_prompt)])
+
+        result = await run_agent_with_retry(
+            agent=question_analysis_agent,
+            user_content=content,
+            app_name="question_analysis_generator",
+            output_type=QuestionAnalysisResponse,
+            max_retries=max_retries,
+            logger=logger
+        )
+
+        # Save to cache
+        if cache_key:
+            grading_utils.save_to_cache(cache_key, {
+                "report_text": result.report_text,
+                "infograph_image_path": result.infograph_image_path
+            })
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Question insights generation failed: {e}")
+        return QuestionAnalysisResponse(report_text=f"AI insights unavailable: {e}")
