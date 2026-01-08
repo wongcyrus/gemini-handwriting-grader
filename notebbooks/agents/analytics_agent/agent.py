@@ -1,8 +1,17 @@
 import os
 import json
 import hashlib
+import uuid
+import base64
+import time
+import re
+from io import BytesIO
+from PIL import Image
+from typing import Optional
+from google import genai
 from google.genai import types
 from google.adk.agents.llm_agent import Agent
+from google.adk.agents import SequentialAgent
 from pydantic import BaseModel, Field
 from ..common import setup_agent_environment, run_agent_with_retry
 import grading_utils
@@ -97,15 +106,78 @@ Use the question details, marking schemes, awarded marks, and answers below:
 
 # --- Class Overview Agent ---
 
-
 class ClassOverviewResponse(BaseModel):
     """Structured response for class overview report"""
     report_text: str = Field(description="The generated class overview report text.")
+    infograph_image_path: Optional[str] = Field(default=None, description="File path to the generated infographic image, or None if generation failed.")
 
-class_overview_agent = Agent(
+
+def generate_infographic_tool(report_text: str) -> str:
+    """
+    Generates an infographic image based on the report text using NanoBanana (Gemini).
+    Returns the file path of the saved image.
+    """
+    try:
+        logger.info("Generating infographic with NanoBanana tool...")
+        
+        # Initialize client
+        api_key = os.getenv("GOOGLE_GENAI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        client = genai.Client(vertexai=True, api_key=api_key)
+        
+        # Define cache directory
+        # Current file: notebbooks/agents/analytics_agent/agent.py
+        # Need to reach project root: ../../../..
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        cache_dir = os.path.join(base_dir, "cache", "class_overview_report")
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        prompt = f"""Create a professional, high-quality infographic summarizing this class performance:
+        
+        {report_text}
+        
+        Visual style: Clean, modern, educational. Include charts or icons representing strengths/weaknesses."""
+        
+        response = client.models.generate_content(
+            model='gemini-3-pro-image-preview',
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                response_modalities=["IMAGE"],
+                image_config=types.ImageConfig(
+                    output_mime_type="image/png"
+                )
+            )
+        )
+        
+        for part in response.candidates[0].content.parts:
+            if part.inline_data:
+                try:
+                    filename = f"infograph_{uuid.uuid4().hex}.png"
+                    image_path = os.path.join(cache_dir, filename)
+                    
+                    # Use PIL to save, as inline_data.data is likely bytes
+                    image = Image.open(BytesIO(part.inline_data.data))
+                    image.save(image_path)
+                    
+                    logger.info(f"Tool saved infographic to {image_path}")
+                    return os.path.abspath(image_path)
+                except Exception as img_err:
+                    logger.error(f"Failed to process/save image data: {img_err}")
+                    # Fallback to direct write if PIL fails (unlikely if valid)
+                    # or re-raise if strict
+                    raise img_err
+                
+        logger.warning("No image data found in NanoBanana response")
+        return "IMAGE_GENERATION_FAILED"
+        
+    except Exception as e:
+        logger.error(f"Infographic tool failed: {e}")
+        return f"IMAGE_GENERATION_ERROR: {str(e)}"
+
+
+class_overview_text_generator = Agent(
     model="gemini-3-flash-preview",
-    name="class_overview_generator",
-    description="Agent for generating class-level performance overview.",
+    name="class_overview_text_generator",
+    description="Agent for generating class-level performance overview text.",
     instruction="""You are summarizing overall class performance from individual reports.
 
 Write a concise class-level overview (<200 words):
@@ -113,14 +185,41 @@ Write a concise class-level overview (<200 words):
 - 3 targeted next-step actions for instruction
 - 2 questions/topics to re-teach next
 Focus on patterns; do not restate student names or IDs.""",
-    output_schema=ClassOverviewResponse,
-    output_key="output",
+    output_key="overview_text_draft",
     generate_content_config=types.GenerateContentConfig(
         temperature=0.35,
         top_p=0.9,
         max_output_tokens=1536,
+    ),
+)
+
+
+class_overview_infograph_generator = Agent(
+    model="gemini-3-flash-preview", # Orchestrator model
+    name="class_overview_infograph_generator",
+    description="Orchestrator for creating a class performance infographic.",
+    instruction="""You are an expert coordinator.
+
+1.  **Analyze** the provided class overview text.
+2.  **Call the 'generate_infographic_tool'** with the overview text to create a visualization.
+3.  **Return** a JSON response matching the schema:
+    -   'report_text': The exact class overview text provided.
+    -   'infograph_image_path': The file path returned by the tool.""",
+    tools=[generate_infographic_tool],
+    output_schema=ClassOverviewResponse,
+    output_key="output",
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0.1,
+        max_output_tokens=2048,
         response_mime_type="application/json",
     ),
+)
+
+
+class_overview_agent = SequentialAgent(
+    name="class_overview_agent",
+    description="Sequential agent for generating class overview text and infographic.",
+    sub_agents=[class_overview_text_generator, class_overview_infograph_generator]
 )
 
 
@@ -146,7 +245,7 @@ async def generate_class_overview_with_ai(
         cached = grading_utils.get_from_cache(cache_key)
         if cached is not None and isinstance(cached, dict) and "report" in cached:
             logger.info("Class overview cache hit")
-            return cached["report"]
+            return cached
     except Exception as e:
         logger.warning(f"Cache lookup failed: {e}")
     # ---------------------
@@ -170,10 +269,13 @@ Individual reports (separated by ---):
 
         # Save to cache
         if cache_key:
-            grading_utils.save_to_cache(cache_key, {"report": result.report_text})
+            grading_utils.save_to_cache(cache_key, {
+                "report": result.report_text,
+                "infograph_image_path": result.infograph_image_path
+            })
 
-        return result.report_text
+        return result
 
     except Exception as e:
         logger.error(f"Class overview generation failed: {e}")
-        return "AI-generated class overview temporarily unavailable due to API issues."
+        return ClassOverviewResponse(report_text="AI-generated class overview temporarily unavailable due to API issues.")
