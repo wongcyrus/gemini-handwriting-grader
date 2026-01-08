@@ -2855,3 +2855,77 @@ The grading system is now **complete and production-ready** with:
 ---
 
 *This documentation consolidates all enhancement work completed on the AI-powered handwriting grading system.*
+
+---
+
+### NOTEBOOK SPLITTING & PPTX ENHANCEMENT SUMMARY
+
+# Notebook Splitting and PowerPoint Enhancement Summary
+
+## Overview
+Re-architected the post-processing workflow by splitting `step6_scoring_postprocessing.ipynb` into two modular notebooks and adding robust PowerPoint report generation capabilities.
+
+## 1. Modular Notebook Architecture
+
+To improve usability and resource management, the massive Step 6 notebook was split into two focused components:
+
+### **Step 6.1: Basic Reporting (`step6_1_basic_reporting.ipynb`)**
+- **Focus**: Core scoring mechanics and artifact generation.
+- **Key Functions**:
+  - Score calculation and aggregation (`marksDf`).
+  - Scored script generation (images with overlays).
+  - Individual PDF creation.
+  - Stratified sample generation (Good/Average/Weak).
+  - Basic Excel report generation.
+  - Project backup and cleanup.
+- **Output**: Essential grading artifacts required for distribution.
+
+### **Step 6.2: AI Analysis (`step6_2_ai_analysis.ipynb`)**
+- **Focus**: Advanced analytics, AI insights, and executive reporting.
+- **Key Functions**:
+  - AI-powered Individual Performance Reports.
+  - Class-level AI analytics and overview.
+  - Deep-dive Question Insights (text + infographics).
+  - Comprehensive Word Report generation.
+  - **NEW**: PowerPoint Presentation generation.
+- **Dependency**: Runs after Step 6.1, reusing generated data structures.
+
+## 2. Robust PowerPoint Generation
+
+A completely new reporting channel was added to provide executive summaries suitable for classroom presentation or stakeholder meetings.
+
+### **Features**
+- **Format**: Professional 16:9 Widescreen aspect ratio (13.33" x 7.5").
+- **Content**:
+  - **Title Slide**: Automatically generated with exam prefix and date.
+  - **Class Overview Slide**: High-level infographic summarizing class performance.
+  - **Question Insight Slides**: Dedicated slide for each question with deep-dive analysis.
+- **Smart Layout**:
+  - **Centered Titles**: Explicitly positioned titles spanning the full slide width.
+  - **Adaptive Infographics**: Images are centered both horizontally and vertically within the content area, scaling automatically to prevent overflow while maintaining aspect ratio.
+- **Speaker Notes Integration**:
+  - The detailed AI analysis text (Hurdles, Keys, Actionable Tips) is automatically injected into the **Speaker Notes** section of each slide, allowing presenters to deliver detailed insights while showing clean visuals.
+
+## 3. Technical Improvements
+
+- **Global Variable Handling**: Fixed scope issues in split notebooks by explicitly re-initializing student ID mappings and path configurations in `step6_2`.
+- **Chart Organization**: Updated chart generation to save all visualizations into a dedicated `charts/` subdirectory for better file organization.
+- **Summary Updates**: Revised final summary functions in both notebooks to accurately reflect their specific scopes and outputs.
+
+## Files Created/Modified
+
+- `notebbooks/step6_1_basic_reporting.ipynb`: New basic reporting notebook.
+- `notebbooks/step6_2_ai_analysis.ipynb`: New AI analysis notebook.
+- `README.md`: Updated workflow documentation.
+
+## Benefits
+
+- **Efficiency**: Run basic reports quickly without waiting for AI processing.
+- **Flexibility**: Re-run AI analysis with different parameters without regenerating PDFs.
+- **Presentation Ready**: Instant PowerPoint deck for class feedback sessions.
+- **Organization**: Cleaner file structure and logical separation of concerns.
+
+---
+
+**Enhancement Date**: January 8, 2026
+**Status**: ✅ Complete and Verified

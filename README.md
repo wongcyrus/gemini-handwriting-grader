@@ -1,4 +1,3 @@
-
 # Gemini-Handwriting-Grader
 
 ![@logo.png](images/logo.png)
@@ -38,7 +37,7 @@ This system leverages Google's Gemini AI to provide:
 - **Comprehensive Validation** at every processing step
 
 ### **📄 Professional Output**
-- **Multi-Format Reports** (Excel, Word, PDF)
+- **Multi-Format Reports** (Excel, Word, PowerPoint, PDF)
 - **Embedded Visualizations** in professional documents
 - **Stratified Samples** for moderation and review
 - **Email Distribution** with personalized insights
@@ -54,7 +53,9 @@ This system automates the entire grading process using Jupyter notebooks that le
 3. **🎯 Define Answer Regions**: Intelligent bounding box detection with interactive refinement
 4. **🤖 AI-Powered Scoring**: Advanced OCR and grading with caching and error recovery
 5. **✅ Review and Validation**: Web interface with comprehensive checks
-6. **📊 Generate Reports**: Professional multi-format reports with AI insights and visualizations
+6. **📊 Generate Reports (Modular)**:
+    - **Step 6.1 Basic**: Scoring, PDFs, sampling, and archiving
+    - **Step 6.2 Advanced**: AI analytics, Word/PPTX reports
 7. **📧 Email Distribution**: Personalized emails with performance analytics and attachments
 
 ### 🆕 Features
@@ -73,12 +74,14 @@ This system automates the entire grading process using Jupyter notebooks that le
 - **Metadata Validation**: Metadata question handling (NAME/ID/CLASS exclusion)
 - **Progress Tracking**: Visual indicators and detailed logging
 
-#### **Step 6 Features**
-- **AI-Powered Analytics**: Individual and class-level performance insights
-- **Professional Word Reports**: Embedded charts and comprehensive analysis
-- **Visual Analytics**: Question performance charts and score distributions
-- **Multi-Sheet Excel Reports**: Detailed data with audit trails
-- **PDF Generation**: Modern libraries with comprehensive validation
+#### **Step 6 Features (Modular)**
+- **Notebook Splitting**: Separated into `step6_1` (Basic) and `step6_2` (AI) for flexibility.
+- **PowerPoint Reports**: Automated 16:9 presentations with centered infographics and speaker notes.
+- **AI-Powered Analytics**: Individual and class-level performance insights.
+- **Professional Word Reports**: Embedded charts and comprehensive analysis.
+- **Visual Analytics**: Question performance charts and score distributions.
+- **Multi-Sheet Excel Reports**: Detailed data with audit trails.
+- **PDF Generation**: Modern libraries with comprehensive validation.
 
 #### **System-Wide Improvements**
 - **Modern Libraries**: Updated to pypdf 6.5.0, removed deprecated dependencies
@@ -193,18 +196,23 @@ Run the Jupyter notebooks in `notebbooks/` directory in order. Each notebook inc
   - ✅ **Data Integrity**: ID validation against name lists
 - **Process**: Verifies all questions scored, validates student IDs, cleans temporary files
 
-### Step 6: Professional Report Generation & Packaging
-**Notebook**: `step6_scoring_postprocessing.ipynb`
+### Step 6: Report Generation & Analysis (Modular)
 
-- **Purpose**: Generate comprehensive reports and final outputs
+**Notebook 6.1**: `step6_1_basic_reporting.ipynb`
+- **Purpose**: Core scoring outputs and archiving.
 - **Features**:
-  - ✅ **AI-Powered Analytics**: Individual and class-level performance insights
-  - ✅ **Professional Word Reports**: Embedded charts and comprehensive analysis
-  - ✅ **Visual Analytics**: Question performance charts and distributions
-  - ✅ **Multi-Sheet Excel Reports**: Detailed data with audit trails
-  - ✅ **PDF Generation**: Modern pypdf 6.5.0 with validation
-  - ✅ **Intelligent Caching**: Efficient Gemini API usage
-  - ✅ **Error Resilience**: Graceful degradation under all conditions
+  - Score calculation and marks sheet generation
+  - Scored script PDF creation
+  - Stratified sampling
+  - Backup creation
+
+**Notebook 6.2**: `step6_2_ai_analysis.ipynb`
+- **Purpose**: Advanced AI analytics and presentation.
+- **Features**:
+  - AI Performance Reports
+  - Class & Question Analytics
+  - Word Report with embedded charts
+  - PowerPoint Presentation (16:9, centered, speaker notes)
 
 ### Step 7: Email Distribution
 **Notebook**: `step7_email_score.ipynb`
@@ -248,6 +256,16 @@ All outputs are generated in `marking_form/<exam_prefix>/` with professional for
 - **📈 Visual Analytics**: Professional charts and graphs
 - **📋 Data Tables**: Performance metrics and question analysis
 - **🎯 Actionable Recommendations**: Specific next steps for instruction
+
+### 🆕 PowerPoint Presentation
+
+#### **Class Overview Presentation**
+**File**: `marking_form/<exam_prefix>/marked/scripts/class_overview_presentation.pptx`
+
+- **16:9 Format**: Professional widescreen layout (13.33" x 7.5").
+- **Centered Infographics**: Visual summaries centered vertically and horizontally.
+- **Deep Dive Slides**: Per-question insights with infographics.
+- **Speaker Notes**: Detailed AI analysis (hurdles, keys, tips) embedded in notes.
 
 ### 📄 PDF Outputs
 
@@ -307,7 +325,7 @@ All outputs are generated in `marking_form/<exam_prefix>/` with professional for
 - **🛡️ Error Resilience**: Robust processing with graceful degradation
 - **⚡ Intelligent Caching**: Efficient API usage and faster reruns
 - **🔍 Comprehensive Audit**: Complete data trail for transparency
-- **📋 Multiple Formats**: Excel, Word, PDF for different use cases
+- **📋 Multiple Formats**: Excel, Word, PDF, PowerPoint for different use cases
 
 ## 🛠️ System Requirements & Setup
 
@@ -325,6 +343,7 @@ pip install -r requirements.txt
 - pandas>=2.0.0          # Data analysis
 - pypdf>=6.5.0          # Modern PDF processing  
 - python-docx>=1.2.0    # Word document generation
+- python-pptx>=0.6.21   # PowerPoint generation
 - matplotlib>=3.7.0     # Visualization
 - seaborn>=0.13.0       # Charts for visualizations
 - opencv-python>=4.8.0  # Image processing
@@ -361,7 +380,7 @@ pip install -r requirements.txt
 - **Robust Error Handling**: Better error handling and validation throughout
 - **Modern Library Stack**: Updated to current, supported versions
 - **Intelligent Metadata Handling**: Proper exclusion of student info fields
-- **Professional Output**: Word documents with embedded visualizations
+- **Professional Output**: Word and PowerPoint documents with embedded visualizations
 
 ### **Reliability Improvements**
 - **Comprehensive Error Handling**: Graceful degradation under all conditions
@@ -373,6 +392,6 @@ pip install -r requirements.txt
 - **AI-Powered Analysis**: Individual and class performance insights
 - **Visual Analytics**: Professional charts and data visualizations
 - **Actionable Recommendations**: Specific next steps for instruction
-- **Multi-Format Output**: Excel, Word, PDF for different stakeholders
+- **Multi-Format Output**: Excel, Word, PDF, PPTX for different stakeholders
 
 This system transforms the grading process into a comprehensive, professional-grade assessment system that provides deep insights into student performance while maintaining the efficiency and accuracy of AI-powered automation.
